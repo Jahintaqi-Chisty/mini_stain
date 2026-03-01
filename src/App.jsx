@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const ADMIN_CREDS = { username: "admin", password: "ministain2025" };
 const DHAKA_AREAS = ["Dhaka","Gazipur","Narayanganj","Manikganj","Narsingdi","Munshiganj"];
 const DISTRICTS = ["Dhaka","Gazipur","Narayanganj","Manikganj","Narsingdi","Munshiganj","Chittagong","Rajshahi","Khulna","Sylhet","Barisal","Rangpur","Mymensingh","Comilla","Cox's Bazar","Noakhali","Feni","Lakshmipur","Chandpur","Brahmanbaria","Bogura","Pabna","Sirajganj","Natore","Naogaon","Jessore","Satkhira","Bagerhat","Meherpur","Chuadanga","Jhenaidah","Faridpur","Madaripur","Shariatpur","Rajbari","Gopalganj","Tangail","Kishoreganj","Netrokona","Jamalpur","Sherpur","Sunamganj","Habiganj","Moulvibazar","Patuakhali","Pirojpur","Jhalokati","Bhola","Barguna","Kurigram","Lalmonirhat","Nilphamari","Panchagarh","Thakurgaon","Dinajpur","Joypurhat","Gaibandha","Kushtia"];
+const FALLBACK_IMG_600 = "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600";
+const FALLBACK_IMG_200 = "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200";
 const INITIAL_PROMOS = [];
 const INIT_PRODUCTS = [];
 
@@ -504,20 +506,22 @@ function ProdCard({product,onView,onAddToCart}){
   const[vi,setVi]=useState(0);const[qty,setQty]=useState(1);
   const v=variants[vi]||variants[0];
   const tag=product.tags?.[0];
+  const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
+  const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(product.originalPrice||base);
   const sale=product.salePercent>0;
-  const price=sale?Math.round(product.originalPrice*(1-product.salePercent/100)):product.price;
-  const img=v?.images?.[0]||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600";
+  const price=sale?Math.round(orig*(1-product.salePercent/100)):base;
+  const img=v?.images?.[0]||FALLBACK_IMG_600;
   return(
     <div className="pcard" onClick={()=>onView(product)}>
       <div className="pimg">
-        <img src={img} alt={product.name} loading="lazy"/>
+        <img src={img} alt={product.name} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
         {tag&&<span className={`pbadge pb-${tag}`}>{tag}</span>}
         {sale&&<span className="stag">−{product.salePercent}%</span>}
       </div>
       <div className="pbody">
         <div className="pcat">{product.category}</div>
         <div className="pname">{product.name}</div>
-        <div className="pprice"><span className="pnow">{fmt(price)}</span><span className="pold">{fmt(product.originalPrice)}</span></div>
+        <div className="pprice"><span className="pnow">{fmt(price)}</span><span className="pold">{fmt(orig)}</span></div>
         <div className="pvars">{variants.map((vv,i)=><div key={i} className={`vd ${vi===i?"on":""}`} style={{background:vv.color}} onClick={e=>{e.stopPropagation();setVi(i);}}/>)}</div>
         <div className="qmini" onClick={e=>e.stopPropagation()}>
           <label>Qty:</label>
@@ -536,7 +540,7 @@ function ZoomImg({src}){
   const onL=()=>{setZ(false);if(ir.current)ir.current.style.transform="scale(1)";};
   return(
     <div className="mib" ref={wr} onMouseEnter={()=>setZ(true)} onMouseMove={onM} onMouseLeave={onL}>
-      <img ref={ir} src={src} alt="" style={{transition:z?"none":"transform .35s"}}/>
+      <img ref={ir} src={src} alt="" style={{transition:z?"none":"transform .35s"}} onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
       {!z&&<div className="ztip">🔍 Hover to zoom</div>}
     </div>
   );
@@ -548,24 +552,27 @@ function ProdDetail({product,onBack,onAddToCart}){
   const[vi,setVi]=useState(0);const[ii,setIi]=useState(0);const[size,setSize]=useState(product.sizes?.[0]||"");const[qty,setQty]=useState(1);
   useEffect(()=>setIi(0),[vi]);
   const v=variants[vi];
+  const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
+  const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(product.originalPrice||base);
   const sale=product.salePercent>0;
-  const price=sale?Math.round(product.originalPrice*(1-product.salePercent/100)):product.price;
-  const saved=product.originalPrice-price;
-  const img=v?.images?.[ii]||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600";
+  const price=sale?Math.round(orig*(1-product.salePercent/100)):base;
+  const saved=orig-price;
+  const img=v?.images?.[ii]||FALLBACK_IMG_600;
+  const thumbs=(v?.images?.length?v.images:[FALLBACK_IMG_600]);
   return(
     <div className="dw">
       <button className="backbtn" onClick={onBack}>← Back to Shop</button>
       <div className="dgrid">
         <div>
           <ZoomImg src={img}/>
-          {v?.images?.length>0&&<div className="thumbs">{v.images.map((im,i)=><div key={i} className={`th ${ii===i?"on":""}`} onClick={()=>setIi(i)}><img src={im} alt=""/></div>)}</div>}
+          {thumbs.length>0&&<div className="thumbs">{thumbs.map((im,i)=><div key={i} className={`th ${ii===i?"on":""}`} onClick={()=>setIi(i)}><img src={im} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/></div>)}</div>}
         </div>
         <div className="dinfo">
           <div className="dcat">{product.category}</div>
           <div className="dname">{product.name}</div>
           <div className="dprow">
             <span className="dprice">{fmt(price)}</span>
-            <span className="dpold">{fmt(product.originalPrice)}</span>
+            <span className="dpold">{fmt(orig)}</span>
             {sale&&<span className="dsave">−{product.salePercent}% OFF</span>}
             {!sale&&saved>0&&<span className="dsave">Save {fmt(saved)}</span>}
           </div>
@@ -1106,8 +1113,10 @@ export default function App(){
   const showToast=(msg,icon="✦")=>setToast({msg,icon});
   const addToCart=(product,vi,qty=1,size="")=>{
     const v=product.variants[vi];
+    const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
+    const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(product.originalPrice||base);
     const sale=product.salePercent>0;
-    const price=sale?Math.round(product.originalPrice*(1-product.salePercent/100)):product.price;
+    const price=sale?Math.round(orig*(1-product.salePercent/100)):base;
     const cartId=`${product.id}-${vi}-${size}`;
     const img=v?.images?.[0]||"";
     const odooProductId=v?.odooProductId||product.odooProductId||product.id;
