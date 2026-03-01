@@ -291,10 +291,11 @@ const shipFee=(d,cp)=>cp?.type==="freeship"?0:isDhaka(d)?80:120;
 // only talks to /api/odoo/* endpoints on the same origin.
 const SYNC_CONFIG = {
   ordersEnabled: true,   // manual sync only (button press)
-  productsEnabled: false,
+  productsEnabled: true,
   baseUrl: "",           // same origin on Vercel
   endpoints: {
-    orderSync: "/api/odoo/order", // POST order payload
+    orderSync: "/api/odoo/order",   // POST order payload
+    productSync: "/api/odoo/product" // POST product payload
   },
 };
 
@@ -319,10 +320,9 @@ async function syncOrderToBackend(order) {
   });
 }
 
-async function upsertProductToBackend(product) {
+async function syncProductToBackend(product) {
   if (!SYNC_CONFIG.productsEnabled) return;
-  if (!SYNC_CONFIG.endpoints.productsUpsert) return;
-  return apiJSON(SYNC_CONFIG.endpoints.productsUpsert, {
+  return apiJSON(SYNC_CONFIG.endpoints.productSync, {
     method: "POST",
     body: JSON.stringify(product),
   });
@@ -393,7 +393,7 @@ function ImgUpload({images,onChange}){
 
 // Product Modal
 function ProdModal({product,onSave,onClose}){
-  const blank={name:"",category:"Rings",price:"",originalPrice:"",stock:"",description:"",sizes:[],tags:[],salePercent:0,variants:[{label:"Silver",color:"#C0C0C0",images:[]}]};
+  const blank={name:"",category:"Rings",price:"",originalPrice:"",stock:"",description:"",sizes:[],tags:[],salePercent:0,variants:[{label:"Silver",color:"#C0C0C0",images:[]}],odooProductId:null,syncedAt:null,syncError:null};
   const[form,setForm]=useState(product?{...product}:blank);
   const[vi,setVi]=useState(0);
   const ch=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
@@ -439,7 +439,21 @@ function ProdModal({product,onSave,onClose}){
         </div>
         <div className="mft">
           <button className="bgh bsm" onClick={onClose}>Cancel</button>
-          <button className="bg bsm" onClick={()=>{if(!form.name||!form.price)return;onSave({...form,price:+form.price,originalPrice:+form.originalPrice||+form.price,stock:+form.stock||0,salePercent:+form.salePercent||0,id:product?.id||Date.now()});}}>Save Product</button>
+          <button className="bg bsm" onClick={()=>{
+            if(!form.name||!form.price)return;
+            const odooProductId=product?.odooProductId||null;
+            onSave({
+              ...form,
+              price:+form.price,
+              originalPrice:+form.originalPrice||+form.price,
+              stock:+form.stock||0,
+              salePercent:+form.salePercent||0,
+              id:product?.id||Date.now(),
+              odooProductId,
+              syncedAt:null,
+              syncError:null
+            });
+          }}>Save Product</button>
         </div>
       </div>
     </div>
@@ -820,6 +834,48 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
     }
     setSyncMsg(`Odoo sync complete: ${ok} ok${fail?`, ${fail} failed`:""}`);
   };
+  const[prodSyncingIds,setProdSyncingIds]=useState([]);
+  const[prodSyncMsg,setProdSyncMsg]=useState("");
+  const markProduct=(id,patch)=>{
+    setProducts(prev=>prev.map(p=>p.id===id?{...p,...patch}:p));
+  };
+  const syncProductRaw=async(product)=>{
+    const res=await syncProductToBackend(product);
+    if(!res) throw new Error("No response from Odoo sync");
+    const odooProductId=res?.odooProductId??res?.id??null;
+    if(!odooProductId) throw new Error("Odoo did not return product id");
+    markProduct(product.id,{odooProductId,syncedAt:new Date().toISOString(),syncError:null});
+    return odooProductId;
+  };
+  const syncProductOne=async(product)=>{
+    if(!SYNC_CONFIG.productsEnabled){setProdSyncMsg("Odoo sync disabled");return false;}
+    if(prodSyncingIds.includes(product.id)) return false;
+    setProdSyncingIds(ids=>ids.includes(product.id)?ids:[...ids,product.id]);
+    markProduct(product.id,{syncError:null});
+    try{
+      await syncProductRaw(product);
+      setProdSyncMsg(`Synced ${product.name} to Odoo`);
+      return true;
+    }catch(e){
+      const msg=e?.message||"Sync failed";
+      markProduct(product.id,{syncError:msg});
+      setProdSyncMsg(`Sync failed for ${product.name}`);
+      return false;
+    }finally{
+      setProdSyncingIds(ids=>ids.filter(id=>id!==product.id));
+    }
+  };
+  const syncAllProducts=async()=>{
+    if(!SYNC_CONFIG.productsEnabled){setProdSyncMsg("Odoo sync disabled");return;}
+    const targets=products.filter(p=>!p.odooProductId&&!p.syncedAt);
+    if(targets.length===0){setProdSyncMsg("No unsynced products");return;}
+    let ok=0,fail=0;
+    for(const p of targets){
+      const r=await syncProductOne(p);
+      if(r) ok+=1; else fail+=1;
+    }
+    setProdSyncMsg(`Odoo sync complete: ${ok} ok${fail?`, ${fail} failed`:""}`);
+  };
   const[tab,setTab]=useState("dashboard");
   const[eprod,setEprod]=useState(null);const[showAdd,setShowAdd]=useState(false);
   const[epromo,setEpromo]=useState(null);const[showAddP,setShowAddP]=useState(false);
@@ -829,6 +885,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
   const sc={Pending:"bpend",Processing:"bproc",Delivered:"bdel",Cancelled:"bcan"};
   const tabs=[{id:"dashboard",ico:"📊",l:"Dashboard"},{id:"products",ico:"💎",l:"Products"},{id:"orders",ico:"📦",l:"Orders"},{id:"promotions",ico:"🏷️",l:"Promotions"}];
   const unsyncedCount=orders.filter(o=>!o.odooOrderId&&!o.syncedAt&&o.status!=="Cancelled").length;
+  const unsyncedProductsCount=products.filter(p=>!p.odooProductId&&!p.syncedAt).length;
 
   return(
     <div className="awrap">
@@ -863,10 +920,22 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
         </>}
         {/* Products */}
         {tab==="products"&&<>
-          <div className="ahd"><div className="atitle">Products ({products.length})</div><button className="bg bsm" onClick={()=>setShowAdd(true)}>+ Add Product</button></div>
+          <div className="ahd">
+            <div className="atitle">Products ({products.length})</div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              <button className="bsm2" onClick={syncAllProducts} disabled={!SYNC_CONFIG.productsEnabled||prodSyncingIds.length>0}>
+                🔄 Sync Unsynced ({unsyncedProductsCount})
+              </button>
+              <button className="bg bsm" onClick={()=>setShowAdd(true)}>+ Add Product</button>
+              <span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>
+                {SYNC_CONFIG.productsEnabled?"Manual Odoo sync":"Odoo sync disabled"}
+              </span>
+              {prodSyncMsg&&<span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>{prodSyncMsg}</span>}
+            </div>
+          </div>
           <div className="tcard">
-            <table className="t"><thead><tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Sale</th><th>Stock</th><th>Actions</th></tr></thead>
-              <tbody>{products.map(p=>{const img=p.variants?.[0]?.images?.[0]||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200";return(
+            <table className="t"><thead><tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Sale</th><th>Stock</th><th>Odoo</th><th>Actions</th></tr></thead>
+              <tbody>{products.map(p=>{const img=p.variants?.[0]?.images?.[0]||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200";const psynced=!!(p.odooProductId||p.syncedAt);const psyncing=prodSyncingIds.includes(p.id);return(
                 <tr key={p.id}>
                   <td><img className="pthmb" src={img} alt=""/></td>
                   <td style={{fontWeight:500}}>{p.name}</td>
@@ -874,6 +943,17 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
                   <td style={{color:"var(--g)"}}>{fmt(p.price)}</td>
                   <td>{p.salePercent>0?<span className="badge bsale">−{p.salePercent}%</span>:<span style={{color:"var(--m)"}}>—</span>}</td>
                   <td>{p.stock}</td>
+                  <td>
+                    {psynced?(
+                      <>
+                        <span className="badge bsuc">Synced</span>
+                        {p.odooProductId&&<div style={{fontFamily:"monospace",fontSize:".7rem",color:"var(--m)",marginTop:4}}>{p.odooProductId}</div>}
+                      </>
+                    ):(
+                      <button className="bsm2" onClick={()=>syncProductOne(p)} disabled={!SYNC_CONFIG.productsEnabled||psyncing}>{psyncing?"Syncing...":"Sync"}</button>
+                    )}
+                    {p.syncError&&<div style={{fontSize:".7rem",color:"var(--red)",marginTop:4}}>{p.syncError}</div>}
+                  </td>
                   <td><div className="tact"><button className="bsm2" onClick={()=>setEprod(p)}>Edit</button><button className="bdanger" onClick={()=>setProducts(products.filter(x=>x.id!==p.id))}>Delete</button></div></td>
                 </tr>);})}</tbody>
             </table>
@@ -950,7 +1030,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
           </div>
         </>}
       </div>
-      {(eprod||showAdd)&&<ProdModal product={eprod||null} onSave={async p=>{if(eprod){setProducts(products.map(x=>x.id===p.id?p:x));setEprod(null);}else{setProducts([...products,p]);setShowAdd(false);}try{await upsertProductToBackend(p);}catch(e){}}} onClose={()=>{setEprod(null);setShowAdd(false);}}/>}
+      {(eprod||showAdd)&&<ProdModal product={eprod||null} onSave={p=>{if(eprod){setProducts(products.map(x=>x.id===p.id?p:x));setEprod(null);}else{setProducts([...products,p]);setShowAdd(false);}}} onClose={()=>{setEprod(null);setShowAdd(false);}}/>}
       {(epromo||showAddP)&&<PromoModal promo={epromo||null} onSave={p=>{if(epromo){setPromos(promos.map(x=>x.id===p.id?p:x));setEpromo(null);}else{setPromos([...promos,p]);setShowAddP(false);}}} onClose={()=>{setEpromo(null);setShowAddP(false);}}/>}
       {vOrder&&(
         <div className="mov" onClick={e=>e.target===e.currentTarget&&setVO(null)}>
