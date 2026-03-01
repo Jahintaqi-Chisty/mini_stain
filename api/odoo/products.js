@@ -33,11 +33,6 @@ async function executeKw(baseUrl, db, uid, apiKey, model, method, args, kwargs =
   return jsonRpcCall(baseUrl, "object", "execute_kw", [db, uid, apiKey, model, method, args, kwargs]);
 }
 
-function toImageDataUrl(imageBase64) {
-  if (!imageBase64) return "";
-  return `data:image/png;base64,${imageBase64}`;
-}
-
 function pickColor(attrs) {
   const byName = (attrs || []).find((a) => a.attributeName && /colou?r/i.test(a.attributeName));
   const value = (byName?.name || "").toLowerCase();
@@ -246,7 +241,11 @@ export default async function handler(req, res) {
         if (!base.sizes.includes(s)) base.sizes.push(s);
       });
 
-      const image = toImageDataUrl(r.image_1920) || toImageDataUrl(tmpl.image_1920);
+      const variantHasImage = !!r.image_1920;
+      const templateHasImage = !!tmpl.image_1920;
+      const variantUrl = `${baseUrl}/web/image/product.product/${r.id}/image_1920`;
+      const templateUrl = templateId ? `${baseUrl}/web/image/product.template/${templateId}/image_1920` : "";
+      const image = variantHasImage ? variantUrl : templateHasImage ? templateUrl : "";
       const stockVal =
         typeof r.qty_available === "number"
           ? r.qty_available

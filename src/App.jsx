@@ -500,8 +500,9 @@ function Navbar({page,setPage,cartCount,openCart,isAdmin,logoutAdmin}){
 
 // Product Card
 function ProdCard({product,onView,onAddToCart}){
+  const variants=product.variants?.length?product.variants:[{label:"Default",color:"#C0C0C0",images:[]}];
   const[vi,setVi]=useState(0);const[qty,setQty]=useState(1);
-  const v=product.variants[vi]||product.variants[0];
+  const v=variants[vi]||variants[0];
   const tag=product.tags?.[0];
   const sale=product.salePercent>0;
   const price=sale?Math.round(product.originalPrice*(1-product.salePercent/100)):product.price;
@@ -517,12 +518,12 @@ function ProdCard({product,onView,onAddToCart}){
         <div className="pcat">{product.category}</div>
         <div className="pname">{product.name}</div>
         <div className="pprice"><span className="pnow">{fmt(price)}</span><span className="pold">{fmt(product.originalPrice)}</span></div>
-        <div className="pvars">{product.variants.map((vv,i)=><div key={i} className={`vd ${vi===i?"on":""}`} style={{background:vv.color}} onClick={e=>{e.stopPropagation();setVi(i);}}/>)}</div>
+        <div className="pvars">{variants.map((vv,i)=><div key={i} className={`vd ${vi===i?"on":""}`} style={{background:vv.color}} onClick={e=>{e.stopPropagation();setVi(i);}}/>)}</div>
         <div className="qmini" onClick={e=>e.stopPropagation()}>
           <label>Qty:</label>
           <div className="qmc"><button className="qmb" onClick={()=>setQty(q=>Math.max(1,q-1))}>−</button><div className="qmv">{qty}</div><button className="qmb" onClick={()=>setQty(q=>q+1)}>+</button></div>
         </div>
-        <button className="atcbtn" onClick={e=>{e.stopPropagation();onAddToCart(product,vi,qty);}}>Add {qty} to Cart — {fmt(price*qty)}</button>
+        <button className="atcbtn" onClick={e=>{e.stopPropagation();onAddToCart({...product,variants},vi,qty);}}>Add {qty} to Cart — {fmt(price*qty)}</button>
       </div>
     </div>
   );
@@ -543,9 +544,10 @@ function ZoomImg({src}){
 
 // Product Detail
 function ProdDetail({product,onBack,onAddToCart}){
+  const variants=product.variants?.length?product.variants:[{label:"Default",color:"#C0C0C0",images:[]}];
   const[vi,setVi]=useState(0);const[ii,setIi]=useState(0);const[size,setSize]=useState(product.sizes?.[0]||"");const[qty,setQty]=useState(1);
   useEffect(()=>setIi(0),[vi]);
-  const v=product.variants[vi];
+  const v=variants[vi];
   const sale=product.salePercent>0;
   const price=sale?Math.round(product.originalPrice*(1-product.salePercent/100)):product.price;
   const saved=product.originalPrice-price;
@@ -570,12 +572,12 @@ function ProdDetail({product,onBack,onAddToCart}){
           <p className="ddesc">{product.description}</p>
           <div>
             <div className="dlabel">Finish: {v?.label}</div>
-            <div className="vbtns">{product.variants.map((vv,i)=><button key={i} className={`vbtn ${vi===i?"on":""}`} onClick={()=>setVi(i)}><span className="vdlg" style={{background:vv.color}}/>{vv.label}</button>)}</div>
+            <div className="vbtns">{variants.map((vv,i)=><button key={i} className={`vbtn ${vi===i?"on":""}`} onClick={()=>setVi(i)}><span className="vdlg" style={{background:vv.color}}/>{vv.label||`Variant ${i+1}`}</button>)}</div>
           </div>
           {product.sizes?.length>0&&<div><div className="dlabel">Ring Size: {size}</div><div className="sizes">{product.sizes.map(s=><button key={s} className={`sbtn ${size===s?"on":""}`} onClick={()=>setSize(s)}>{s}</button>)}</div></div>}
           <div className="qrow">
             <div className="qctrl"><button className="qb" onClick={()=>setQty(q=>Math.max(1,q-1))}>−</button><div className="qv">{qty}</div><button className="qb" onClick={()=>setQty(q=>q+1)}>+</button></div>
-            <button className="daddbtn" onClick={()=>onAddToCart(product,vi,qty,size)}>Add {qty} to Cart — {fmt(price*qty)}</button>
+            <button className="daddbtn" onClick={()=>onAddToCart({...product,variants},vi,qty,size)}>Add {qty} to Cart — {fmt(price*qty)}</button>
           </div>
           <div className="delinf">🚚 <div><strong>Dhaka Division:</strong> ৳80 delivery &nbsp;|&nbsp; <strong>Outside Dhaka:</strong> ৳120 delivery</div></div>
           <div className="feats">{[["🛡️","316L Surgical Steel"],["💧","Waterproof"],["🚫","Nickel-Free"],["♻️","Tarnish-Resistant"]].map(([ic,tx])=><div key={tx} className="feat"><span className="fic">{ic}</span><span className="ftx">{tx}</span></div>)}</div>
@@ -784,7 +786,7 @@ function OrderSuc({order,onContinue}){
 }
 
 // Admin Panel
-function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
+function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onViewProduct}){
   const[syncingIds,setSyncingIds]=useState([]);
   const[syncMsg,setSyncMsg]=useState("");
   const markOrder=(orderId,patch)=>{
@@ -911,11 +913,11 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
             </div>
           </div>
           <div className="tcard">
-            <table className="t"><thead><tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Sale</th><th>Stock</th><th>Odoo ID</th></tr></thead>
+            <table className="t"><thead><tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Sale</th><th>Stock</th><th>Odoo ID</th><th>View</th></tr></thead>
               <tbody>{products.map(p=>{const img=p.variants?.[0]?.images?.[0]||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200";const odooId=p.odooProductId||p.id;const tmplId=p.odooTemplateId;return(
                 <tr key={p.id}>
                   <td><img className="pthmb" src={img} alt=""/></td>
-                  <td style={{fontWeight:500}}>{p.name}</td>
+                  <td style={{fontWeight:500,cursor:"pointer"}} onClick={()=>onViewProduct&&onViewProduct(p)}>{p.name}</td>
                   <td><span className="badge bcat">{p.category}</span></td>
                   <td style={{color:"var(--g)"}}>{fmt(p.price)}</td>
                   <td>{p.salePercent>0?<span className="badge bsale">−{p.salePercent}%</span>:<span style={{color:"var(--m)"}}>—</span>}</td>
@@ -924,6 +926,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
                     {odooId||"—"}
                     {tmplId&&tmplId!==odooId&&<div style={{fontSize:".7rem",color:"var(--m)",marginTop:4}}>tmpl {tmplId}</div>}
                   </td>
+                  <td><button className="bsm2" onClick={()=>onViewProduct&&onViewProduct(p)}>View</button></td>
                 </tr>);})}</tbody>
             </table>
           </div>
@@ -1128,7 +1131,7 @@ export default function App(){
 
   if(page==="adminlogin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={false} logoutAdmin={logout}/><AdminLogin onLogin={()=>{setAdminAuth(true);setPage("admin");}}/></>);
   if(page==="success"&&sucOrder)return(<><Navbar page="shop" setPage={setPage2} cartCount={0} openCart={()=>{}} isAdmin={adminAuth} logoutAdmin={logout}/><OrderSuc order={sucOrder} onContinue={()=>{setPage("shop");setSucOrder(null);}}/></>);
-  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
+  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos} onViewProduct={(p)=>{setPage("shop");setViewProd(p);}}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
   if(checkout)return(<><Navbar page="shop" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><Checkout cart={cart} coupon={coupon} onPlace={placeOrder} onBack={()=>{setCheckout(false);setCartOpen(true);}}/></>);
   return(
     <>
