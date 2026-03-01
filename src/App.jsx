@@ -280,26 +280,21 @@ table.t tr:hover td{background:var(--s2);}
 @media(max-width:600px){.frow{grid-template-columns:1fr;}.dgrid{grid-template-columns:1fr;}.nbtn{display:none;}} 
 `;
 
-function injectCSS(){const s=document.createElement("style");s.textContent=CSS;document.head.appendChild(s);} 
+function injectCSS(){const s=document.createElement("style");s.textContent=CSS;document.head.appendChild(s);}
 const fmt=n=>"৳"+Number(n).toLocaleString("en-BD");
 const genId=()=>"MS-"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase();
 const isDhaka=d=>DHAKA_AREAS.includes(d);
 const shipFee=(d,cp)=>cp?.type==="freeship"?0:isDhaka(d)?80:120;
 
-// ─── Optional Sync (SQL backend / Odoo) ─────────────────────────────────────
-// This frontend works fully offline (localStorage). To sync products/orders,
-// point it to YOUR backend (recommended) or an Odoo proxy endpoint.
-//
-// ✅ Recommended architecture:
-//   React (this app) -> Your API (Node/Python) -> SQL + Odoo
-//
-// Turn on sync by setting enabled:true and baseUrl.
+// ─── Optional Sync (Odoo via Vercel API) ────────────────────────────────────
+// Keep Odoo credentials on the serverless side (Vercel env). The frontend
+// only talks to /api/odoo/* endpoints on the same origin.
 const SYNC_CONFIG = {
-  enabled: false,
-  baseUrl: "", // e.g. "https://api.yoursite.com"
+  ordersEnabled: true,   // manual sync only (button press)
+  productsEnabled: false,
+  baseUrl: "",           // same origin on Vercel
   endpoints: {
-    orders: "/orders",     // POST
-    products: "/products", // GET + POST
+    orderSync: "/api/odoo/order", // POST order payload
   },
 };
 
@@ -317,18 +312,20 @@ async function apiJSON(path, options = {}) {
 }
 
 async function syncOrderToBackend(order) {
-  if (!SYNC_CONFIG.enabled || !SYNC_CONFIG.baseUrl) return;
-  return apiJSON(SYNC_CONFIG.endpoints.orders, { method: "POST", body: JSON.stringify(order) });
-}
-
-async function fetchProductsFromBackend() {
-  if (!SYNC_CONFIG.enabled || !SYNC_CONFIG.baseUrl) return null;
-  return apiJSON(SYNC_CONFIG.endpoints.products, { method: "GET" });
+  if (!SYNC_CONFIG.ordersEnabled) return;
+  return apiJSON(SYNC_CONFIG.endpoints.orderSync, {
+    method: "POST",
+    body: JSON.stringify(order),
+  });
 }
 
 async function upsertProductToBackend(product) {
-  if (!SYNC_CONFIG.enabled || !SYNC_CONFIG.baseUrl) return;
-  return apiJSON(SYNC_CONFIG.endpoints.products, { method: "POST", body: JSON.stringify(product) });
+  if (!SYNC_CONFIG.productsEnabled) return;
+  if (!SYNC_CONFIG.endpoints.productsUpsert) return;
+  return apiJSON(SYNC_CONFIG.endpoints.productsUpsert, {
+    method: "POST",
+    body: JSON.stringify(product),
+  });
 }
 
 const payLabel = (m) => (m === "cod" ? "COD" : m === "bkash" ? "bKash" : m === "nagad" ? "Nagad" : String(m || ""));
@@ -781,6 +778,48 @@ function OrderSuc({order,onContinue}){
 
 // Admin Panel
 function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
+  const[syncingIds,setSyncingIds]=useState([]);
+  const[syncMsg,setSyncMsg]=useState("");
+  const markOrder=(orderId,patch)=>{
+    setOrders(prev=>prev.map(o=>o.orderId===orderId?{...o,...patch}:o));
+  };
+  const syncOrderRaw=async(order)=>{
+    const res=await syncOrderToBackend(order);
+    if(!res) throw new Error("No response from Odoo sync");
+    const odooOrderId=res?.odooOrderId??res?.id??null;
+    if(!odooOrderId) throw new Error("Odoo did not return order id");
+    markOrder(order.orderId,{odooOrderId,syncedAt:new Date().toISOString(),syncError:null});
+    return odooOrderId;
+  };
+  const syncOne=async(order)=>{
+    if(!SYNC_CONFIG.ordersEnabled){setSyncMsg("Odoo sync disabled");return false;}
+    if(syncingIds.includes(order.orderId)) return false;
+    setSyncingIds(ids=>ids.includes(order.orderId)?ids:[...ids,order.orderId]);
+    markOrder(order.orderId,{syncError:null});
+    try{
+      await syncOrderRaw(order);
+      setSyncMsg(`Synced ${order.orderId} to Odoo`);
+      return true;
+    }catch(e){
+      const msg=e?.message||"Sync failed";
+      markOrder(order.orderId,{syncError:msg});
+      setSyncMsg(`Sync failed for ${order.orderId}`);
+      return false;
+    }finally{
+      setSyncingIds(ids=>ids.filter(id=>id!==order.orderId));
+    }
+  };
+  const syncAll=async()=>{
+    if(!SYNC_CONFIG.ordersEnabled){setSyncMsg("Odoo sync disabled");return;}
+    const targets=orders.filter(o=>!o.odooOrderId&&!o.syncedAt&&o.status!=="Cancelled");
+    if(targets.length===0){setSyncMsg("No unsynced orders");return;}
+    let ok=0,fail=0;
+    for(const o of targets){
+      const r=await syncOne(o);
+      if(r) ok+=1; else fail+=1;
+    }
+    setSyncMsg(`Odoo sync complete: ${ok} ok${fail?`, ${fail} failed`:""}`);
+  };
   const[tab,setTab]=useState("dashboard");
   const[eprod,setEprod]=useState(null);const[showAdd,setShowAdd]=useState(false);
   const[epromo,setEpromo]=useState(null);const[showAddP,setShowAddP]=useState(false);
@@ -789,6 +828,8 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
   const pend=orders.filter(o=>o.status==="Pending").length;
   const sc={Pending:"bpend",Processing:"bproc",Delivered:"bdel",Cancelled:"bcan"};
   const tabs=[{id:"dashboard",ico:"📊",l:"Dashboard"},{id:"products",ico:"💎",l:"Products"},{id:"orders",ico:"📦",l:"Orders"},{id:"promotions",ico:"🏷️",l:"Promotions"}];
+  const unsyncedCount=orders.filter(o=>!o.odooOrderId&&!o.syncedAt&&o.status!=="Cancelled").length;
+
   return(
     <div className="awrap">
       <div className="aside">
@@ -840,27 +881,53 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
         </>}
         {/* Orders */}
         {tab==="orders"&&<>
-          <div className="ahd"><div className="atitle">Orders ({orders.length})</div></div>
+          <div className="ahd">
+            <div className="atitle">Orders ({orders.length})</div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              <button className="bsm2" onClick={syncAll} disabled={!SYNC_CONFIG.ordersEnabled||syncingIds.length>0}>
+                🔄 Sync Unsynced ({unsyncedCount})
+              </button>
+              <span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>
+                {SYNC_CONFIG.ordersEnabled?"Manual Odoo sync":"Odoo sync disabled"}
+              </span>
+              {syncMsg&&<span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>{syncMsg}</span>}
+            </div>
+          </div>
           <div className="tcard">
             {orders.length===0?<div style={{padding:60,textAlign:"center",color:"var(--m)"}}>No orders yet!</div>:(
-              <table className="t"><thead><tr><th>Order ID</th><th>Customer</th><th>Phone</th><th>District</th><th>Total</th><th>Pay</th><th>Status</th><th>Update</th></tr></thead>
-                <tbody>{orders.slice().reverse().map(o=>(
-                  <tr key={o.orderId}>
-                    <td style={{fontFamily:"monospace",color:"var(--g)",fontSize:".72rem",cursor:"pointer"}} onClick={()=>setVO(o)}>{o.orderId}</td>
-                    <td style={{fontWeight:500}}>{o.address.firstName} {o.address.lastName}</td>
-                    <td style={{color:"var(--m)",fontSize:".8rem"}}>{o.address.phone}</td>
-                    <td><span className="badge bcat">{o.address.district}</span></td>
-                    <td style={{color:"var(--g)",fontWeight:600}}>{fmt(o.total)}</td>
-                    <td>
-                      <span className={`badge ${payBadge(o.payment?.method||"cod")}`}>{payLabel(o.payment?.method||"cod")}</span>
-                      {o.payment?.trx && (
-                        <div style={{fontFamily:"monospace",fontSize:".7rem",color:"var(--m)",marginTop:4}}>{o.payment.trx}</div>
-                      )}
-                    </td>
-                    <td><span className={`badge ${sc[o.status]}`}>{o.status}</span></td>
-                    <td><select className="fi" style={{padding:"5px 8px",fontSize:".75rem",width:118}} value={o.status} onChange={e=>setOrders(orders.map(x=>x.orderId===o.orderId?{...x,status:e.target.value}:x))}>{["Pending","Processing","Delivered","Cancelled"].map(s=><option key={s}>{s}</option>)}</select></td>
-                  </tr>
-                ))}</tbody>
+              <table className="t"><thead><tr><th>Order ID</th><th>Customer</th><th>Phone</th><th>District</th><th>Total</th><th>Pay</th><th>Status</th><th>Odoo</th><th>Update</th></tr></thead>
+                <tbody>{orders.slice().reverse().map(o=>{
+                  const synced=!!(o.odooOrderId||o.syncedAt);
+                  const syncing=syncingIds.includes(o.orderId);
+                  return(
+                    <tr key={o.orderId}>
+                      <td style={{fontFamily:"monospace",color:"var(--g)",fontSize:".72rem",cursor:"pointer"}} onClick={()=>setVO(o)}>{o.orderId}</td>
+                      <td style={{fontWeight:500}}>{o.address.firstName} {o.address.lastName}</td>
+                      <td style={{color:"var(--m)",fontSize:".8rem"}}>{o.address.phone}</td>
+                      <td><span className="badge bcat">{o.address.district}</span></td>
+                      <td style={{color:"var(--g)",fontWeight:600}}>{fmt(o.total)}</td>
+                      <td>
+                        <span className={`badge ${payBadge(o.payment?.method||"cod")}`}>{payLabel(o.payment?.method||"cod")}</span>
+                        {o.payment?.trx && (
+                          <div style={{fontFamily:"monospace",fontSize:".7rem",color:"var(--m)",marginTop:4}}>{o.payment.trx}</div>
+                        )}
+                      </td>
+                      <td><span className={`badge ${sc[o.status]}`}>{o.status}</span></td>
+                      <td>
+                        {synced?(
+                          <>
+                            <span className="badge bsuc">Synced</span>
+                            {o.odooOrderId&&<div style={{fontFamily:"monospace",fontSize:".7rem",color:"var(--m)",marginTop:4}}>{o.odooOrderId}</div>}
+                          </>
+                        ):(
+                          <button className="bsm2" onClick={()=>syncOne(o)} disabled={!SYNC_CONFIG.ordersEnabled||syncing}>{syncing?"Syncing...":"Sync"}</button>
+                        )}
+                        {o.syncError&&<div style={{fontSize:".7rem",color:"var(--red)",marginTop:4}}>{o.syncError}</div>}
+                      </td>
+                      <td><select className="fi" style={{padding:"5px 8px",fontSize:".75rem",width:118}} value={o.status} onChange={e=>setOrders(orders.map(x=>x.orderId===o.orderId?{...x,status:e.target.value}:x))}>{["Pending","Processing","Delivered","Cancelled"].map(s=><option key={s}>{s}</option>)}</select></td>
+                    </tr>
+                  );
+                })}</tbody>
               </table>
             )}
           </div>
@@ -891,6 +958,8 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
             <div className="mhd"><div className="mtitle">Order Detail</div><button className="xbtn" onClick={()=>setVO(null)}>✕</button></div>
             <div className="mbody">
               <div style={{fontFamily:"monospace",color:"var(--g)",marginBottom:16,fontSize:"1rem"}}>{vOrder.orderId}</div>
+              {vOrder.odooOrderId&&<div style={{fontSize:".8rem",color:"var(--m)",marginBottom:8}}>Odoo Order ID: <span style={{fontFamily:"monospace"}}>{vOrder.odooOrderId}</span></div>}
+              {vOrder.syncError&&<div style={{fontSize:".8rem",color:"var(--red)",marginBottom:8}}>Sync Error: {vOrder.syncError}</div>}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
                 {[["Customer",`${vOrder.address.firstName} ${vOrder.address.lastName}`],["Phone",vOrder.address.phone],["Payment",`${payLabel(vOrder.payment?.method||"cod")}${vOrder.payment?.trx?" · Trx: "+vOrder.payment.trx:""}`],["Address",vOrder.address.address],["City",vOrder.address.city],["District",vOrder.address.district],["Date",new Date(vOrder.date).toLocaleDateString("en-BD")]].map(([k,v])=><div key={k}><div className="fl">{k}</div><div style={{fontSize:".85rem",marginTop:3}}>{v}</div></div>)}
               </div>
@@ -963,7 +1032,6 @@ function Shop({products,promos,onView,onAddToCart}){
 // App
 export default function App(){
   useEffect(()=>{injectCSS();},[]);
-  useEffect(()=>{(async()=>{try{const remote=await fetchProductsFromBackend();if(Array.isArray(remote)&&remote.length>0)setProducts(remote);}catch(e){}})();},[]);
   const[products,setProducts]=useLS("ms_products",INIT_PRODUCTS);
   const[orders,setOrders]=useLS("ms_orders",[]);
   const[cart,setCart]=useLS("ms_cart",[]);
@@ -989,8 +1057,14 @@ export default function App(){
   const updateQty=(id,qty)=>{if(qty<1){setCart(p=>p.filter(i=>i.cartId!==id));return;}setCart(p=>p.map(i=>i.cartId===id?{...i,qty}:i));};
   const removeItem=id=>setCart(p=>p.filter(i=>i.cartId!==id));
   const cartCount=cart.reduce((s,i)=>s+i.qty,0);
-  const placeOrder=async(data)=>{setOrders(p=>[...p,data]);setCart([]);setCoupon(null);setCheckout(false);setSucOrder(data);setPage("success");
-    try{await syncOrderToBackend(data);}catch(e){console.warn(e);showToast("Order saved locally (sync failed)","⚠️");}
+  const placeOrder=async(data)=>{
+    const order={...data,odooOrderId:null,syncedAt:null,syncError:null};
+    setOrders(p=>[...p,order]);
+    setCart([]);
+    setCoupon(null);
+    setCheckout(false);
+    setSucOrder(order);
+    setPage("success");
   };
   const setPage2=p=>{if(p==="admin"&&!adminAuth){setPage("adminlogin");return;}setPage(p);setViewProd(null);};
   const logout=()=>{setAdminAuth(false);setPage("shop");};
@@ -1009,4 +1083,3 @@ export default function App(){
     </>
   );
 }
-
