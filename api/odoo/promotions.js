@@ -73,12 +73,14 @@ function mapPromo(rec) {
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
+    res.setHeader("Cache-Control", "no-store");
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
   const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
   if (missing.length > 0) {
+    res.setHeader("Cache-Control", "no-store");
     res.status(500).json({ error: `Missing env: ${missing.join(", ")}` });
     return;
   }
@@ -118,6 +120,7 @@ export default async function handler(req, res) {
         { attributes: ["type"] }
       );
     } catch {
+      res.setHeader("Cache-Control", "no-store");
       res.status(500).json({ error: "coupon.program model not available in this Odoo instance" });
       return;
     }
@@ -140,8 +143,10 @@ export default async function handler(req, res) {
       .map(mapPromo)
       .filter(Boolean);
 
+    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=300");
     res.status(200).json(mapped);
   } catch (err) {
+    res.setHeader("Cache-Control", "no-store");
     res.status(500).json({ error: err?.message || "Odoo promotions sync failed" });
   }
 }
