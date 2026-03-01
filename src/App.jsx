@@ -1107,7 +1107,7 @@ export default function App(){
     const price=sale?Math.round(product.originalPrice*(1-product.salePercent/100)):product.price;
     const cartId=`${product.id}-${vi}-${size}`;
     const img=v?.images?.[0]||"";
-    const odooProductId=product.odooProductId||product.id;
+    const odooProductId=v?.odooProductId||product.odooProductId||product.id;
     setCart(prev=>{const ex=prev.find(i=>i.cartId===cartId);if(ex)return prev.map(i=>i.cartId===cartId?{...i,qty:i.qty+qty}:i);return[...prev,{cartId,id:product.id,odooProductId,name:product.name,price,variant:v.label,image:img,qty,size}];});
     showToast(`${product.name} × ${qty} added!`,`✦`);setCartOpen(true);
   };
