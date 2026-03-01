@@ -333,6 +333,7 @@ export default async function handler(req, res) {
         odooProductId: r.id,
         price: variantPrice,
         originalPrice: variantPrice,
+        attributes: attrs,
       });
     });
 

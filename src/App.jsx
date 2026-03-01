@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ADMIN_CREDS = { username: "admin", password: "ministain2025" };
@@ -6,6 +6,20 @@ const DHAKA_AREAS = ["Dhaka","Gazipur","Narayanganj","Manikganj","Narsingdi","Mu
 const DISTRICTS = ["Dhaka","Gazipur","Narayanganj","Manikganj","Narsingdi","Munshiganj","Chittagong","Rajshahi","Khulna","Sylhet","Barisal","Rangpur","Mymensingh","Comilla","Cox's Bazar","Noakhali","Feni","Lakshmipur","Chandpur","Brahmanbaria","Bogura","Pabna","Sirajganj","Natore","Naogaon","Jessore","Satkhira","Bagerhat","Meherpur","Chuadanga","Jhenaidah","Faridpur","Madaripur","Shariatpur","Rajbari","Gopalganj","Tangail","Kishoreganj","Netrokona","Jamalpur","Sherpur","Sunamganj","Habiganj","Moulvibazar","Patuakhali","Pirojpur","Jhalokati","Bhola","Barguna","Kurigram","Lalmonirhat","Nilphamari","Panchagarh","Thakurgaon","Dinajpur","Joypurhat","Gaibandha","Kushtia"];
 const FALLBACK_IMG_600 = "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600";
 const FALLBACK_IMG_200 = "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200";
+const attrColor = (value="")=>{
+  const v=String(value).toLowerCase();
+  if(v.includes("silver"))return "#C0C0C0";
+  if(v.includes("gold"))return "#D4AF37";
+  if(v.includes("rose"))return "#B76E79";
+  if(v.includes("black"))return "#2A2A2A";
+  if(v.includes("white"))return "#F5F5F5";
+  if(v.includes("blue"))return "#5B8DD9";
+  if(v.includes("green"))return "#5AB88A";
+  if(v.includes("red"))return "#D95B5B";
+  if(v.includes("pink"))return "#E8A1B5";
+  if(v.includes("gray")||v.includes("grey"))return "#7A7A7A";
+  return "";
+};
 const INITIAL_PROMOS = [];
 const INIT_PRODUCTS = [];
 
@@ -549,9 +563,42 @@ function ZoomImg({src}){
 // Product Detail
 function ProdDetail({product,onBack,onAddToCart}){
   const variants=product.variants?.length?product.variants:[{label:"Default",color:"#C0C0C0",images:[]}];
+  const attributeGroups=useMemo(()=>{
+    const map=new Map();
+    variants.forEach(v=>{
+      (v.attributes||[]).forEach(a=>{
+        const name=a.attributeName||"Attribute";
+        if(!map.has(name))map.set(name,new Set());
+        if(a.name)map.get(name).add(a.name);
+      });
+    });
+    return Array.from(map.entries()).map(([name,set])=>({name,values:Array.from(set)}));
+  },[variants]);
   const[vi,setVi]=useState(0);const[ii,setIi]=useState(0);const[size,setSize]=useState(product.sizes?.[0]||"");const[qty,setQty]=useState(1);
-  useEffect(()=>setIi(0),[vi]);
-  const v=variants[vi];
+  const[attrSel,setAttrSel]=useState({});
+  useEffect(()=>{
+    if(attributeGroups.length===0){setAttrSel({});return;}
+    setAttrSel(prev=>{
+      const next={...prev};
+      attributeGroups.forEach(g=>{if(!next[g.name])next[g.name]=g.values[0];});
+      Object.keys(next).forEach(k=>{if(!attributeGroups.find(g=>g.name===k))delete next[k];});
+      return next;
+    });
+  },[attributeGroups]);
+  const matchIndex=useMemo(()=>{
+    if(attributeGroups.length===0)return 0;
+    const idx=variants.findIndex(v=>{
+      return attributeGroups.every(g=>{
+        const sel=attrSel[g.name];
+        if(!sel)return true;
+        return (v.attributes||[]).some(a=>(a.attributeName||"Attribute")===g.name&&a.name===sel);
+      });
+    });
+    return idx>=0?idx:0;
+  },[variants,attributeGroups,attrSel]);
+  const activeVi=attributeGroups.length?matchIndex:vi;
+  useEffect(()=>setIi(0),[activeVi]);
+  const v=variants[activeVi];
   const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
   const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(product.originalPrice||base);
   const sale=product.salePercent>0;
@@ -577,14 +624,44 @@ function ProdDetail({product,onBack,onAddToCart}){
             {!sale&&saved>0&&<span className="dsave">Save {fmt(saved)}</span>}
           </div>
           <p className="ddesc">{product.description}</p>
-          <div>
-            <div className="dlabel">Finish: {v?.label}</div>
-            <div className="vbtns">{variants.map((vv,i)=><button key={i} className={`vbtn ${vi===i?"on":""}`} onClick={()=>setVi(i)}><span className="vdlg" style={{background:vv.color}}/>{vv.label||`Variant ${i+1}`}</button>)}</div>
-          </div>
-          {product.sizes?.length>0&&<div><div className="dlabel">Ring Size: {size}</div><div className="sizes">{product.sizes.map(s=><button key={s} className={`sbtn ${size===s?"on":""}`} onClick={()=>setSize(s)}>{s}</button>)}</div></div>}
+          {attributeGroups.length>0?(
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              {attributeGroups.map(g=>{
+                const isSize=/size/i.test(g.name);
+                return(
+                  <div key={g.name}>
+                    <div className="dlabel">{g.name}: {attrSel[g.name]||""}</div>
+                    <div className={isSize?"sizes":"vbtns"}>
+                      {g.values.map(val=>{
+                        const color=!isSize?attrColor(val):"";
+                        return(
+                          <button key={val} className={`${isSize?"sbtn":"vbtn"} ${attrSel[g.name]===val?"on":""}`} onClick={()=>setAttrSel(s=>({...s,[g.name]:val}))}>
+                            {color&&<span className="vdlg" style={{background:color}}/>}
+                            {val}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ):(
+            <>
+              <div>
+                <div className="dlabel">Finish: {v?.label}</div>
+                <div className="vbtns">{variants.map((vv,i)=><button key={i} className={`vbtn ${vi===i?"on":""}`} onClick={()=>setVi(i)}><span className="vdlg" style={{background:vv.color}}/>{vv.label||`Variant ${i+1}`}</button>)}</div>
+              </div>
+              {product.sizes?.length>0&&<div><div className="dlabel">Ring Size: {size}</div><div className="sizes">{product.sizes.map(s=><button key={s} className={`sbtn ${size===s?"on":""}`} onClick={()=>setSize(s)}>{s}</button>)}</div></div>}
+            </>
+          )}
           <div className="qrow">
             <div className="qctrl"><button className="qb" onClick={()=>setQty(q=>Math.max(1,q-1))}>−</button><div className="qv">{qty}</div><button className="qb" onClick={()=>setQty(q=>q+1)}>+</button></div>
-            <button className="daddbtn" onClick={()=>onAddToCart({...product,variants},vi,qty,size)}>Add {qty} to Cart — {fmt(price*qty)}</button>
+            <button className="daddbtn" onClick={()=>{
+              const sizeAttr=attributeGroups.find(g=>/size/i.test(g.name))?.name;
+              const selSize=sizeAttr?attrSel[sizeAttr]||"":size;
+              onAddToCart({...product,variants},activeVi,qty,selSize);
+            }}>Add {qty} to Cart — {fmt(price*qty)}</button>
           </div>
           <div className="delinf">🚚 <div><strong>Dhaka Division:</strong> ৳80 delivery &nbsp;|&nbsp; <strong>Outside Dhaka:</strong> ৳120 delivery</div></div>
           <div className="feats">{[["🛡️","316L Surgical Steel"],["💧","Waterproof"],["🚫","Nickel-Free"],["♻️","Tarnish-Resistant"]].map(([ic,tx])=><div key={tx} className="feat"><span className="fic">{ic}</span><span className="ftx">{tx}</span></div>)}</div>

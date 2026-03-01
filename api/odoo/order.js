@@ -47,8 +47,14 @@ async function executeKw(baseUrl, db, uid, apiKey, model, method, args, kwargs =
 
 function orderLineName(item) {
   const parts = [item.name];
-  if (item.variant && String(item.variant).toLowerCase() !== "default") parts.push(item.variant);
-  if (item.size) parts.push(`Size ${item.size}`);
+  const variant = String(item.variant || "");
+  const size = String(item.size || "");
+  if (variant && variant.toLowerCase() !== "default") parts.push(variant);
+  if (size) {
+    const v = variant.toLowerCase();
+    const s = size.toLowerCase();
+    if (!v.includes(s) && !v.includes("size")) parts.push(`Size ${size}`);
+  }
   return parts.filter(Boolean).join(" · ");
 }
 
