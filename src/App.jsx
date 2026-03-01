@@ -75,6 +75,15 @@ img{display:block;}
 .sw input::placeholder{color:var(--m);} 
 .sico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:.85rem;color:var(--m);} 
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:20px;} 
+.skcard{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);overflow:hidden;} 
+.skimg{aspect-ratio:1;background:var(--s2);} 
+.skbody{padding:16px;display:flex;flex-direction:column;gap:10px;} 
+.skline{height:10px;border-radius:6px;background:var(--s2);} 
+.skline.sm{width:40%;} 
+.skline.md{width:70%;} 
+.skline.lg{width:90%;} 
+.skpulse{animation:pulse 1.2s ease-in-out infinite;} 
+@keyframes pulse{0%{opacity:.6}50%{opacity:1}100%{opacity:.6}} 
 .pcard{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);overflow:hidden;cursor:pointer;transition:all .3s;} 
 .pcard:hover{transform:translateY(-5px);border-color:rgba(200,169,76,.3);box-shadow:0 24px 64px rgba(0,0,0,.45);} 
 .pimg{aspect-ratio:1;overflow:hidden;position:relative;} 
@@ -397,7 +406,7 @@ function ImgUpload({images,onChange}){
       <div className="iugrid">
         {slots.map((img,i)=>(
           <div key={i} className="iuslot" onClick={()=>{if(!img){setSi(i);ref.current.click();}}}>
-            {img?(<><img src={img} alt=""/><div className="iurm" onClick={e=>{e.stopPropagation();const u=[...images];u.splice(i,1);onChange(u);}}>✕</div></>)
+            {img?(<><img src={img} alt="" loading="lazy"/><div className="iurm" onClick={e=>{e.stopPropagation();const u=[...images];u.splice(i,1);onChange(u);}}>✕</div></>)
               :<div className="iuadd"><span>＋</span>Upload</div>}
           </div>
         ))}
@@ -560,7 +569,7 @@ function ZoomImg({src}){
   const onL=()=>{setZ(false);if(ir.current)ir.current.style.transform="scale(1)";};
   return(
     <div className="mib" ref={wr} onMouseEnter={()=>setZ(true)} onMouseMove={onM} onMouseLeave={onL}>
-      <img ref={ir} src={src} alt="" style={{transition:z?"none":"transform .35s"}} onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
+      <img ref={ir} src={src} alt="" loading="lazy" style={{transition:z?"none":"transform .35s"}} onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
       {!z&&<div className="ztip">🔍 Hover to zoom</div>}
     </div>
   );
@@ -618,7 +627,7 @@ function ProdDetail({product,onBack,onAddToCart}){
       <div className="dgrid">
         <div>
           <ZoomImg src={img}/>
-          {thumbs.length>0&&<div className="thumbs">{thumbs.map((im,i)=><div key={i} className={`th ${ii===i?"on":""}`} onClick={()=>setIi(i)}><img src={im} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/></div>)}</div>}
+          {thumbs.length>0&&<div className="thumbs">{thumbs.map((im,i)=><div key={i} className={`th ${ii===i?"on":""}`} onClick={()=>setIi(i)}><img src={im} alt="" loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/></div>)}</div>}
         </div>
         <div className="dinfo">
           <div className="dcat">{product.category}</div>
@@ -696,7 +705,7 @@ function CartSide({cart,onClose,updateQty,removeItem,onCheckout,coupon,setCoupon
         {cart.length===0?<div className="empty"><div className="eico">🛍</div><div>Your cart is empty</div><button className="bg" style={{padding:"10px 22px",fontSize:".82rem"}} onClick={onClose}>Start Shopping</button></div>
           :cart.map(item=>(
             <div key={item.cartId} className="ci">
-              <img className="ciimg" src={item.image||FALLBACK_IMG_200} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/>
+              <img className="ciimg" src={item.image||FALLBACK_IMG_200} alt="" loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/>
               <div className="ciinf">
                 <div className="cinm">{item.name}</div>
                 <div className="civ">{item.variant}{item.size?` · Size ${item.size}`:""}</div>
@@ -838,7 +847,7 @@ function Checkout({cart,coupon,onPlace,onBack}){
               <div className="sumtitle">Order Summary</div>
               {cart.map(item=>(
                 <div key={item.cartId} className="si_">
-                  <img className="siimg" src={item.image||FALLBACK_IMG_200} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/>
+                  <img className="siimg" src={item.image||FALLBACK_IMG_200} alt="" loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/>
                   <div className="siinf"><div className="sinm">{item.name}</div><div className="siv">{item.variant} · Qty: {item.qty}{item.size?` · Size ${item.size}`:""}</div></div>
                   <div className="sip">{fmt(item.price*item.qty)}</div>
                 </div>
@@ -992,7 +1001,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
             <table className="t"><thead><tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Sale</th><th>Stock</th><th>Odoo ID</th><th>View</th></tr></thead>
               <tbody>{products.map(p=>{const img=p.variants?.[0]?.images?.[0]||FALLBACK_IMG_200;const odooId=p.odooProductId||p.id;const tmplId=p.odooTemplateId;return(
                 <tr key={p.id} style={{cursor:"pointer"}} onClick={()=>onViewProduct&&onViewProduct(p)}>
-                  <td><img className="pthmb" src={img} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/></td>
+                  <td><img className="pthmb" src={img} alt="" loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/></td>
                   <td style={{fontWeight:500}}>{p.name}</td>
                   <td><span className="badge bcat">{p.category}</span></td>
                   <td style={{color:"var(--g)"}}>{fmt(p.price)}</td>
@@ -1089,7 +1098,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
               </div>
               {vOrder.address.notes&&<div style={{background:"var(--s2)",border:"1px solid var(--b)",borderRadius:8,padding:10,fontSize:".82rem",marginBottom:14}}><b>Notes:</b> {vOrder.address.notes}</div>}
               <hr className="dv"/>
-              {vOrder.items.map(i=><div key={i.cartId} className="si_" style={{marginBottom:10}}><img className="siimg" src={i.image||FALLBACK_IMG_200} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/><div className="siinf"><div className="sinm">{i.name}</div><div className="siv">{i.variant} · Qty: {i.qty}{i.size?` · Size ${i.size}`:""}</div></div><div className="sip">{fmt(i.price*i.qty)}</div></div>)}
+              {vOrder.items.map(i=><div key={i.cartId} className="si_" style={{marginBottom:10}}><img className="siimg" src={i.image||FALLBACK_IMG_200} alt="" loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/><div className="siinf"><div className="sinm">{i.name}</div><div className="siv">{i.variant} · Qty: {i.qty}{i.size?` · Size ${i.size}`:""}</div></div><div className="sip">{fmt(i.price*i.qty)}</div></div>)}
               <hr className="dv"/>
               {vOrder.discount>0&&<div className="srow discrow"><span>Discount ({vOrder.coupon})</span><span>−{fmt(vOrder.discount)}</span></div>}
               <div className="srow"><span>Delivery ({isDhaka(vOrder.address.district)?"Inside Dhaka":"Outside Dhaka"})</span><span>{fmt(vOrder.shipping)}</span></div>
@@ -1103,7 +1112,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
 }
 
 // Shop
-function Shop({products,promos,onView,onAddToCart}){
+function Shop({products,promos,onView,onAddToCart,loading}){
   const[filter,setFilter]=useState("All");const[search,setSearch]=useState("");
   const cats=["All",...Array.from(new Set(products.map(p=>p.category).filter(Boolean))).sort()];
   const active=promos.filter(p=>p.active);
@@ -1128,8 +1137,24 @@ function Shop({products,promos,onView,onAddToCart}){
           <div className="sw"><span className="sico">🔍</span><input placeholder="Search jewelry..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
         </div>
         <div className="ftabs">{cats.map(c=><button key={c} className={`ftab ${filter===c?"on":""}`} onClick={()=>setFilter(c)}>{c}</button>)}</div>
-        {list.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--m)"}}>No products found</div>
-          :<div className="pgrid">{list.map(p=><ProdCard key={p.id} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>}
+        {loading&&products.length===0?(
+          <div className="pgrid">
+            {Array.from({length:8}).map((_,i)=>(
+              <div key={i} className="skcard">
+                <div className="skimg skpulse"/>
+                <div className="skbody">
+                  <div className="skline sm skpulse"/>
+                  <div className="skline lg skpulse"/>
+                  <div className="skline md skpulse"/>
+                </div>
+              </div>
+            ))}
+          </div>
+        ):list.length===0?(
+          <div style={{textAlign:"center",padding:"60px 0",color:"var(--m)"}}>No products found</div>
+        ):(
+          <div className="pgrid">{list.map(p=><ProdCard key={p.id} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
+        )}
       </div>
       <div className="trubar"><div className="trus">{[["💧","Waterproof"],["🛡️","316L Steel"],["🚚","Dhaka ৳80 · Others ৳120"],["💵","Cash on Delivery"],["↩️","Easy Returns"]].map(([ic,lb])=><div key={lb} className="tri"><span style={{fontSize:"1.1rem"}}>{ic}</span>{lb}</div>)}</div></div>
       <footer className="footer">
@@ -1157,15 +1182,19 @@ function Shop({products,promos,onView,onAddToCart}){
 export default function App(){
   useEffect(()=>{injectCSS();},[]);
   const[products,setProducts]=useState(INIT_PRODUCTS);
+  const[productsLoading,setProductsLoading]=useState(true);
   const[orders,setOrders]=useState([]);
   const[cart,setCart]=useLS("ms_cart",[]);
   const[promos,setPromos]=useState(INITIAL_PROMOS);
   useEffect(()=>{
     (async()=>{
+      setProductsLoading(true);
       try{
         const remote=await fetchProductsFromOdoo();
         if(Array.isArray(remote)) setProducts(remote);
-      }catch(e){}
+      }catch(e){}finally{
+        setProductsLoading(false);
+      }
       try{
         const remotePromos=await fetchPromosFromOdoo();
         if(Array.isArray(remotePromos)) setPromos(remotePromos);
@@ -1225,7 +1254,7 @@ export default function App(){
   return(
     <>
       <Navbar page={page} setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/>
-      {viewProd?<ProdDetail product={viewProd} onBack={()=>setViewProd(null)} onAddToCart={addToCart}/>:<Shop products={products} promos={promos} onView={setViewProd} onAddToCart={addToCart}/>}
+      {viewProd?<ProdDetail product={viewProd} onBack={()=>setViewProd(null)} onAddToCart={addToCart}/>:<Shop products={products} promos={promos} onView={setViewProd} onAddToCart={addToCart} loading={productsLoading}/>}
       {cartOpen&&<CartSide cart={cart} onClose={()=>setCartOpen(false)} updateQty={updateQty} removeItem={removeItem} onCheckout={()=>{setCartOpen(false);setCheckout(true);}} coupon={coupon} setCoupon={setCoupon} promos={promos}/>}
       {toast&&<Toast {...toast} onClose={()=>setToast(null)}/>
       }
