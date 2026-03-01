@@ -85,6 +85,7 @@ export default async function handler(req, res) {
       "product_tmpl_id",
       "product_template_id",
       "attribute_value_ids",
+      "product_template_attribute_value_ids",
       "product_variant_id",
       "image_1920",
       "qty_available",
@@ -104,7 +105,7 @@ export default async function handler(req, res) {
       "product.product",
       "fields_get",
       [desired],
-      { attributes: ["type"] }
+      { attributes: ["type", "relation"] }
     );
     const fields = desired.filter((f) => fieldsInfo && fieldsInfo[f]);
     const domain = [];
@@ -178,19 +179,26 @@ export default async function handler(req, res) {
       : [];
     const tmplMap = new Map((Array.isArray(tmplRows) ? tmplRows : []).map((t) => [t.id, t]));
 
+    const attrFieldName = fieldsInfo?.attribute_value_ids
+      ? "attribute_value_ids"
+      : fieldsInfo?.product_template_attribute_value_ids
+        ? "product_template_attribute_value_ids"
+        : null;
     const attrValueIds = new Set();
     items.forEach((r) => {
-      const ids = Array.isArray(r.attribute_value_ids) ? r.attribute_value_ids : [];
+      const ids = attrFieldName && Array.isArray(r[attrFieldName]) ? r[attrFieldName] : [];
       ids.forEach((id) => attrValueIds.add(id));
     });
     const attrMap = new Map();
     if (attrValueIds.size) {
+      const attrRelation =
+        (attrFieldName && fieldsInfo?.[attrFieldName]?.relation) || "product.attribute.value";
       const attrRows = await executeKw(
         baseUrl,
         db,
         uid,
         apiKey,
-        "product.attribute.value",
+        attrRelation,
         "search_read",
         [[[ "id", "in", Array.from(attrValueIds) ]]],
         { fields: ["id", "name", "attribute_id"] }
@@ -230,7 +238,7 @@ export default async function handler(req, res) {
       }
 
       const base = productMap.get(templateId);
-      const attrs = (Array.isArray(r.attribute_value_ids) ? r.attribute_value_ids : [])
+      const attrs = (attrFieldName && Array.isArray(r[attrFieldName]) ? r[attrFieldName] : [])
         .map((id) => attrMap.get(id))
         .filter(Boolean);
       const sizeValues = attrs
