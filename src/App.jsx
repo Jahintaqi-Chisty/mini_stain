@@ -4,19 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const ADMIN_CREDS = { username: "admin", password: "ministain2025" };
 const DHAKA_AREAS = ["Dhaka","Gazipur","Narayanganj","Manikganj","Narsingdi","Munshiganj"];
 const DISTRICTS = ["Dhaka","Gazipur","Narayanganj","Manikganj","Narsingdi","Munshiganj","Chittagong","Rajshahi","Khulna","Sylhet","Barisal","Rangpur","Mymensingh","Comilla","Cox's Bazar","Noakhali","Feni","Lakshmipur","Chandpur","Brahmanbaria","Bogura","Pabna","Sirajganj","Natore","Naogaon","Jessore","Satkhira","Bagerhat","Meherpur","Chuadanga","Jhenaidah","Faridpur","Madaripur","Shariatpur","Rajbari","Gopalganj","Tangail","Kishoreganj","Netrokona","Jamalpur","Sherpur","Sunamganj","Habiganj","Moulvibazar","Patuakhali","Pirojpur","Jhalokati","Bhola","Barguna","Kurigram","Lalmonirhat","Nilphamari","Panchagarh","Thakurgaon","Dinajpur","Joypurhat","Gaibandha","Kushtia"];
-const INITIAL_PROMOS = [
-  { id:1, code:"WELCOME10", type:"percent", value:10, minOrder:500, active:true, label:"10% Off Welcome Discount" },
-  { id:2, code:"SAVE100", type:"flat", value:100, minOrder:1000, active:true, label:"৳100 Flat Discount" },
-  { id:3, code:"FREESHIP", type:"freeship", value:0, minOrder:0, active:true, label:"Free Shipping" },
-];
-const INIT_PRODUCTS = [
-  { id:1, name:"Solar Eclipse Ring", price:899, originalPrice:1299, category:"Rings", description:"Handcrafted 316L stainless steel ring with mirror-polished finish. Hypoallergenic, tarnish-free, and waterproof.", variants:[{ label:"Silver", color:"#C0C0C0", images:["https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600","https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=600","https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600"] },{ label:"Gold Tone", color:"#D4AF37", images:["https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?w=600","https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600","https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600"] },{ label:"Rose Gold", color:"#B76E79", images:["https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600","https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=600","https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=600"] }], sizes:["5","6","7","8","9","10"], stock:25, tags:["bestseller"], salePercent:0 },
-  { id:2, name:"Celestial Chain Necklace", price:1199, originalPrice:1699, category:"Necklaces", description:"Delicate 18-inch stainless steel chain with a star pendant. Corrosion-resistant, perfect for everyday wear.", variants:[{ label:"Silver", color:"#C0C0C0", images:["https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600","https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600","https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?w=600"] },{ label:"Gold Tone", color:"#D4AF37", images:["https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=600","https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600","https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600"] }], sizes:[], stock:40, tags:["new"], salePercent:0 },
-  { id:3, name:"Arc Cuff Bracelet", price:749, originalPrice:999, category:"Bracelets", description:"Bold geometric cuff bracelet from surgical-grade stainless steel. Adjustable, scratch-resistant brushed finish.", variants:[{ label:"Silver", color:"#C0C0C0", images:["https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600","https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=600","https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=600"] },{ label:"Black Steel", color:"#2A2A2A", images:["https://images.unsplash.com/photo-1592492152545-9695d3f473f4?w=600","https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?w=600","https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600"] }], sizes:[], stock:18, tags:["sale"], salePercent:25 },
-  { id:4, name:"Helix Stud Earrings", price:549, originalPrice:799, category:"Earrings", description:"Minimalist twisted stud earrings in 316L stainless steel. Nickel-free posts with butterfly backs.", variants:[{ label:"Silver", color:"#C0C0C0", images:["https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600","https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?w=600","https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600"] },{ label:"Rose Gold", color:"#B76E79", images:["https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600","https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600","https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=600"] }], sizes:[], stock:55, tags:["bestseller"], salePercent:0 },
-  { id:5, name:"Infinity Link Bracelet", price:849, originalPrice:1099, category:"Bracelets", description:"Elegant infinity link bracelet from premium stainless steel. Adjustable chain, resistant to sweat and water.", variants:[{ label:"Silver", color:"#C0C0C0", images:["https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=600","https://images.unsplash.com/photo-1592492152545-9695d3f473f4?w=600","https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600"] },{ label:"Gold Tone", color:"#D4AF37", images:["https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?w=600","https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=600","https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600"] }], sizes:[], stock:30, tags:["new"], salePercent:0 },
-  { id:6, name:"Sovereign Pendant", price:1499, originalPrice:1999, category:"Necklaces", description:"Statement pendant necklace with interlocking circles on a 20-inch box chain. IP plating for lasting color.", variants:[{ label:"Silver", color:"#C0C0C0", images:["https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?w=600","https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600","https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600"] },{ label:"Gold Tone", color:"#D4AF37", images:["https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600","https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=600","https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600"] },{ label:"Black Steel", color:"#2A2A2A", images:["https://images.unsplash.com/photo-1592492152545-9695d3f473f4?w=600","https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?w=600","https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=600"] }], sizes:[], stock:22, tags:["featured"], salePercent:15 },
-];
+const INITIAL_PROMOS = [];
+const INIT_PRODUCTS = [];
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
@@ -291,11 +280,13 @@ const shipFee=(d,cp)=>cp?.type==="freeship"?0:isDhaka(d)?80:120;
 // only talks to /api/odoo/* endpoints on the same origin.
 const SYNC_CONFIG = {
   ordersEnabled: true,   // manual sync only (button press)
-  productsEnabled: true,
+  productsEnabled: true, // pull from Odoo
+  promosEnabled: true,   // pull from Odoo
   baseUrl: "",           // same origin on Vercel
   endpoints: {
-    orderSync: "/api/odoo/order",   // POST order payload
-    productSync: "/api/odoo/product" // POST product payload
+    orderSync: "/api/odoo/order",      // POST order payload
+    productsPull: "/api/odoo/products", // GET products from Odoo
+    promosPull: "/api/odoo/promotions"  // GET promotions from Odoo
   },
 };
 
@@ -320,12 +311,14 @@ async function syncOrderToBackend(order) {
   });
 }
 
-async function syncProductToBackend(product) {
-  if (!SYNC_CONFIG.productsEnabled) return;
-  return apiJSON(SYNC_CONFIG.endpoints.productSync, {
-    method: "POST",
-    body: JSON.stringify(product),
-  });
+async function fetchProductsFromOdoo() {
+  if (!SYNC_CONFIG.productsEnabled) return null;
+  return apiJSON(SYNC_CONFIG.endpoints.productsPull, { method: "GET" });
+}
+
+async function fetchPromosFromOdoo() {
+  if (!SYNC_CONFIG.promosEnabled) return null;
+  return apiJSON(SYNC_CONFIG.endpoints.promosPull, { method: "GET" });
 }
 
 const payLabel = (m) => (m === "cod" ? "COD" : m === "bkash" ? "bKash" : m === "nagad" ? "Nagad" : String(m || ""));
@@ -834,58 +827,43 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
     }
     setSyncMsg(`Odoo sync complete: ${ok} ok${fail?`, ${fail} failed`:""}`);
   };
-  const[prodSyncingIds,setProdSyncingIds]=useState([]);
+  const[productSyncing,setProductSyncing]=useState(false);
+  const[promoSyncing,setPromoSyncing]=useState(false);
   const[prodSyncMsg,setProdSyncMsg]=useState("");
-  const markProduct=(id,patch)=>{
-    setProducts(prev=>prev.map(p=>p.id===id?{...p,...patch}:p));
-  };
-  const syncProductRaw=async(product)=>{
-    const res=await syncProductToBackend(product);
-    if(!res) throw new Error("No response from Odoo sync");
-    const odooProductId=res?.odooProductId??res?.id??null;
-    if(!odooProductId) throw new Error("Odoo did not return product id");
-    markProduct(product.id,{odooProductId,syncedAt:new Date().toISOString(),syncError:null});
-    return odooProductId;
-  };
-  const syncProductOne=async(product)=>{
-    if(!SYNC_CONFIG.productsEnabled){setProdSyncMsg("Odoo sync disabled");return false;}
-    if(prodSyncingIds.includes(product.id)) return false;
-    setProdSyncingIds(ids=>ids.includes(product.id)?ids:[...ids,product.id]);
-    markProduct(product.id,{syncError:null});
-    try{
-      await syncProductRaw(product);
-      setProdSyncMsg(`Synced ${product.name} to Odoo`);
-      return true;
-    }catch(e){
-      const msg=e?.message||"Sync failed";
-      markProduct(product.id,{syncError:msg});
-      setProdSyncMsg(`Sync failed for ${product.name}`);
-      return false;
-    }finally{
-      setProdSyncingIds(ids=>ids.filter(id=>id!==product.id));
-    }
-  };
-  const syncAllProducts=async()=>{
+  const[promoSyncMsg,setPromoSyncMsg]=useState("");
+  const syncProductsFromOdoo=useCallback(async()=>{
     if(!SYNC_CONFIG.productsEnabled){setProdSyncMsg("Odoo sync disabled");return;}
-    const targets=products.filter(p=>!p.odooProductId&&!p.syncedAt);
-    if(targets.length===0){setProdSyncMsg("No unsynced products");return;}
-    let ok=0,fail=0;
-    for(const p of targets){
-      const r=await syncProductOne(p);
-      if(r) ok+=1; else fail+=1;
+    setProductSyncing(true);
+    try{
+      const remote=await fetchProductsFromOdoo();
+      if(Array.isArray(remote)) setProducts(remote);
+      setProdSyncMsg(`Synced ${Array.isArray(remote)?remote.length:0} products`);
+    }catch(e){
+      setProdSyncMsg(e?.message||"Product sync failed");
+    }finally{
+      setProductSyncing(false);
     }
-    setProdSyncMsg(`Odoo sync complete: ${ok} ok${fail?`, ${fail} failed`:""}`);
-  };
+  }, [setProducts, setProdSyncMsg, setProductSyncing]);
+  const syncPromosFromOdoo=useCallback(async()=>{
+    if(!SYNC_CONFIG.promosEnabled){setPromoSyncMsg("Odoo sync disabled");return;}
+    setPromoSyncing(true);
+    try{
+      const remote=await fetchPromosFromOdoo();
+      if(Array.isArray(remote)) setPromos(remote);
+      setPromoSyncMsg(`Synced ${Array.isArray(remote)?remote.length:0} promotions`);
+    }catch(e){
+      setPromoSyncMsg(e?.message||"Promotion sync failed");
+    }finally{
+      setPromoSyncing(false);
+    }
+  }, [setPromos, setPromoSyncMsg, setPromoSyncing]);
   const[tab,setTab]=useState("dashboard");
-  const[eprod,setEprod]=useState(null);const[showAdd,setShowAdd]=useState(false);
-  const[epromo,setEpromo]=useState(null);const[showAddP,setShowAddP]=useState(false);
   const[vOrder,setVO]=useState(null);
   const rev=orders.filter(o=>o.status!=="Cancelled").reduce((s,o)=>s+o.total,0);
   const pend=orders.filter(o=>o.status==="Pending").length;
   const sc={Pending:"bpend",Processing:"bproc",Delivered:"bdel",Cancelled:"bcan"};
   const tabs=[{id:"dashboard",ico:"📊",l:"Dashboard"},{id:"products",ico:"💎",l:"Products"},{id:"orders",ico:"📦",l:"Orders"},{id:"promotions",ico:"🏷️",l:"Promotions"}];
   const unsyncedCount=orders.filter(o=>!o.odooOrderId&&!o.syncedAt&&o.status!=="Cancelled").length;
-  const unsyncedProductsCount=products.filter(p=>!p.odooProductId&&!p.syncedAt).length;
 
   return(
     <div className="awrap">
@@ -923,19 +901,18 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
           <div className="ahd">
             <div className="atitle">Products ({products.length})</div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-              <button className="bsm2" onClick={syncAllProducts} disabled={!SYNC_CONFIG.productsEnabled||prodSyncingIds.length>0}>
-                🔄 Sync Unsynced ({unsyncedProductsCount})
+              <button className="bsm2" onClick={syncProductsFromOdoo} disabled={!SYNC_CONFIG.productsEnabled||productSyncing}>
+                {productSyncing?"Syncing...":"🔄 Sync Products"}
               </button>
-              <button className="bg bsm" onClick={()=>setShowAdd(true)}>+ Add Product</button>
               <span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>
-                {SYNC_CONFIG.productsEnabled?"Manual Odoo sync":"Odoo sync disabled"}
+                {SYNC_CONFIG.productsEnabled?"Managed in Odoo":"Odoo sync disabled"}
               </span>
               {prodSyncMsg&&<span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>{prodSyncMsg}</span>}
             </div>
           </div>
           <div className="tcard">
-            <table className="t"><thead><tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Sale</th><th>Stock</th><th>Odoo</th><th>Actions</th></tr></thead>
-              <tbody>{products.map(p=>{const img=p.variants?.[0]?.images?.[0]||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200";const psynced=!!(p.odooProductId||p.syncedAt);const psyncing=prodSyncingIds.includes(p.id);return(
+            <table className="t"><thead><tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Sale</th><th>Stock</th><th>Odoo ID</th></tr></thead>
+              <tbody>{products.map(p=>{const img=p.variants?.[0]?.images?.[0]||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200";const odooId=p.odooProductId||p.id;const tmplId=p.odooTemplateId;return(
                 <tr key={p.id}>
                   <td><img className="pthmb" src={img} alt=""/></td>
                   <td style={{fontWeight:500}}>{p.name}</td>
@@ -943,18 +920,10 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
                   <td style={{color:"var(--g)"}}>{fmt(p.price)}</td>
                   <td>{p.salePercent>0?<span className="badge bsale">−{p.salePercent}%</span>:<span style={{color:"var(--m)"}}>—</span>}</td>
                   <td>{p.stock}</td>
-                  <td>
-                    {psynced?(
-                      <>
-                        <span className="badge bsuc">Synced</span>
-                        {p.odooProductId&&<div style={{fontFamily:"monospace",fontSize:".7rem",color:"var(--m)",marginTop:4}}>{p.odooProductId}</div>}
-                      </>
-                    ):(
-                      <button className="bsm2" onClick={()=>syncProductOne(p)} disabled={!SYNC_CONFIG.productsEnabled||psyncing}>{psyncing?"Syncing...":"Sync"}</button>
-                    )}
-                    {p.syncError&&<div style={{fontSize:".7rem",color:"var(--red)",marginTop:4}}>{p.syncError}</div>}
+                  <td style={{fontFamily:"monospace",color:"var(--m)",fontSize:".75rem"}}>
+                    {odooId||"—"}
+                    {tmplId&&tmplId!==odooId&&<div style={{fontSize:".7rem",color:"var(--m)",marginTop:4}}>tmpl {tmplId}</div>}
                   </td>
-                  <td><div className="tact"><button className="bsm2" onClick={()=>setEprod(p)}>Edit</button><button className="bdanger" onClick={()=>setProducts(products.filter(x=>x.id!==p.id))}>Delete</button></div></td>
                 </tr>);})}</tbody>
             </table>
           </div>
@@ -1014,15 +983,24 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
         </>}
         {/* Promotions */}
         {tab==="promotions"&&<>
-          <div className="ahd"><div className="atitle">Promotions</div><button className="bg bsm" onClick={()=>setShowAddP(true)}>+ New Promo</button></div>
+          <div className="ahd">
+            <div className="atitle">Promotions</div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              <button className="bsm2" onClick={syncPromosFromOdoo} disabled={!SYNC_CONFIG.promosEnabled||promoSyncing}>
+                {promoSyncing?"Syncing...":"🔄 Sync Promotions"}
+              </button>
+              <span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>
+                {SYNC_CONFIG.promosEnabled?"Managed in Odoo":"Odoo sync disabled"}
+              </span>
+              {promoSyncMsg&&<span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>{promoSyncMsg}</span>}
+            </div>
+          </div>
           <div className="pclist">
             {promos.map(p=>(
               <div key={p.id} className="pci">
                 <div><div className="pcode">{p.code}</div><div className="pinf">{p.label} · Min: {p.minOrder?fmt(p.minOrder):"No min"} · {p.type==="freeship"?"Free Ship":p.type==="percent"?`${p.value}% off`:`৳${p.value} off`}</div></div>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <span className={`badge ${p.active?"bon":"boff"}`}>{p.active?"Active":"Off"}</span>
-                  <button className="bsm2" onClick={()=>setEpromo(p)}>Edit</button>
-                  <button className="bdanger" onClick={()=>setPromos(promos.filter(x=>x.id!==p.id))}>Delete</button>
                 </div>
               </div>
             ))}
@@ -1030,8 +1008,6 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
           </div>
         </>}
       </div>
-      {(eprod||showAdd)&&<ProdModal product={eprod||null} onSave={p=>{if(eprod){setProducts(products.map(x=>x.id===p.id?p:x));setEprod(null);}else{setProducts([...products,p]);setShowAdd(false);}}} onClose={()=>{setEprod(null);setShowAdd(false);}}/>}
-      {(epromo||showAddP)&&<PromoModal promo={epromo||null} onSave={p=>{if(epromo){setPromos(promos.map(x=>x.id===p.id?p:x));setEpromo(null);}else{setPromos([...promos,p]);setShowAddP(false);}}} onClose={()=>{setEpromo(null);setShowAddP(false);}}/>}
       {vOrder&&(
         <div className="mov" onClick={e=>e.target===e.currentTarget&&setVO(null)}>
           <div className="mbox" style={{maxWidth:520}}>
@@ -1061,7 +1037,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos}){
 // Shop
 function Shop({products,promos,onView,onAddToCart}){
   const[filter,setFilter]=useState("All");const[search,setSearch]=useState("");
-  const cats=["All","Rings","Necklaces","Bracelets","Earrings"];
+  const cats=["All",...Array.from(new Set(products.map(p=>p.category).filter(Boolean))).sort()];
   const active=promos.filter(p=>p.active);
   const list=products.filter(p=>(filter==="All"||p.category===filter)&&(!search||p.name.toLowerCase().includes(search.toLowerCase())));
   return(
@@ -1131,7 +1107,8 @@ export default function App(){
     const price=sale?Math.round(product.originalPrice*(1-product.salePercent/100)):product.price;
     const cartId=`${product.id}-${vi}-${size}`;
     const img=v?.images?.[0]||"";
-    setCart(prev=>{const ex=prev.find(i=>i.cartId===cartId);if(ex)return prev.map(i=>i.cartId===cartId?{...i,qty:i.qty+qty}:i);return[...prev,{cartId,id:product.id,name:product.name,price,variant:v.label,image:img,qty,size}];});
+    const odooProductId=product.odooProductId||product.id;
+    setCart(prev=>{const ex=prev.find(i=>i.cartId===cartId);if(ex)return prev.map(i=>i.cartId===cartId?{...i,qty:i.qty+qty}:i);return[...prev,{cartId,id:product.id,odooProductId,name:product.name,price,variant:v.label,image:img,qty,size}];});
     showToast(`${product.name} × ${qty} added!`,`✦`);setCartOpen(true);
   };
   const updateQty=(id,qty)=>{if(qty<1){setCart(p=>p.filter(i=>i.cartId!==id));return;}setCart(p=>p.map(i=>i.cartId===id?{...i,qty}:i));};

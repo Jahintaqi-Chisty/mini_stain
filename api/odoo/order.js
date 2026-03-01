@@ -47,7 +47,7 @@ async function executeKw(baseUrl, db, uid, apiKey, model, method, args, kwargs =
 
 function orderLineName(item) {
   const parts = [item.name];
-  if (item.variant) parts.push(item.variant);
+  if (item.variant && String(item.variant).toLowerCase() !== "default") parts.push(item.variant);
   if (item.size) parts.push(`Size ${item.size}`);
   return parts.filter(Boolean).join(" · ");
 }
@@ -176,7 +176,10 @@ export default async function handler(req, res) {
     const lines = [];
     for (const item of order.items) {
       const lineName = orderLineName(item);
-      const productId = await getOrCreateProductId(baseUrl, db, uid, apiKey, lineName, item.price);
+      const pid = Number(item.odooProductId);
+      const productId = Number.isFinite(pid) && pid > 0
+        ? pid
+        : await getOrCreateProductId(baseUrl, db, uid, apiKey, lineName, item.price);
       lines.push([
         0,
         0,
