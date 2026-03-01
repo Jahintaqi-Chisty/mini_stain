@@ -301,6 +301,7 @@ const SYNC_CONFIG = {
   baseUrl: "",           // same origin on Vercel
   endpoints: {
     orderSync: "/api/odoo/order",      // POST order payload
+    ordersPull: "/api/odoo/orders",    // GET orders from Odoo
     productsPull: "/api/odoo/products", // GET products from Odoo
     promosPull: "/api/odoo/promotions"  // GET promotions from Odoo
   },
@@ -325,6 +326,11 @@ async function syncOrderToBackend(order) {
     method: "POST",
     body: JSON.stringify(order),
   });
+}
+
+async function fetchOrdersFromOdoo() {
+  if (!SYNC_CONFIG.ordersEnabled) return null;
+  return apiJSON(SYNC_CONFIG.endpoints.ordersPull, { method: "GET" });
 }
 
 async function fetchProductsFromOdoo() {
@@ -876,12 +882,32 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
   const markOrder=(orderId,patch)=>{
     setOrders(prev=>prev.map(o=>o.orderId===orderId?{...o,...patch}:o));
   };
+  const[pullMsg,setPullMsg]=useState("");
+  const[ordersPulling,setOrdersPulling]=useState(false);
+  const syncOrdersFromOdoo=useCallback(async()=>{
+    if(!SYNC_CONFIG.ordersEnabled){setPullMsg("Odoo sync disabled");return;}
+    setOrdersPulling(true);
+    try{
+      const remote=await fetchOrdersFromOdoo();
+      setOrders(prev=>{
+        const locals=prev.filter(o=>o.localOnly||(!o.odooOrderId&&!o.syncedAt));
+        const list=Array.isArray(remote)?remote:[];
+        locals.forEach(l=>{if(!list.find(r=>r.orderId===l.orderId))list.unshift(l);});
+        return list;
+      });
+      setPullMsg(`Loaded ${Array.isArray(remote)?remote.length:0} orders from Odoo`);
+    }catch(e){
+      setPullMsg(e?.message||"Order fetch failed");
+    }finally{
+      setOrdersPulling(false);
+    }
+  },[setOrders]);
   const syncOrderRaw=async(order)=>{
     const res=await syncOrderToBackend(order);
     if(!res) throw new Error("No response from Odoo sync");
     const odooOrderId=res?.odooOrderId??res?.id??null;
     if(!odooOrderId) throw new Error("Odoo did not return order id");
-    markOrder(order.orderId,{odooOrderId,syncedAt:new Date().toISOString(),syncError:null});
+    markOrder(order.orderId,{odooOrderId,syncedAt:new Date().toISOString(),syncError:null,localOnly:false});
     return odooOrderId;
   };
   const syncOne=async(order)=>{
@@ -912,6 +938,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
       if(r) ok+=1; else fail+=1;
     }
     setSyncMsg(`Odoo sync complete: ${ok} ok${fail?`, ${fail} failed`:""}`);
+    if(ok>0) await syncOrdersFromOdoo();
   };
   const[productSyncing,setProductSyncing]=useState(false);
   const[promoSyncing,setPromoSyncing]=useState(false);
@@ -945,11 +972,26 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
   }, [setPromos, setPromoSyncMsg, setPromoSyncing]);
   const[tab,setTab]=useState("dashboard");
   const[vOrder,setVO]=useState(null);
-  const rev=orders.filter(o=>o.status!=="Cancelled").reduce((s,o)=>s+o.total,0);
-  const pend=orders.filter(o=>o.status==="Pending").length;
+  const localOnlyOrders=orders.filter(o=>o.localOnly||(!o.odooOrderId&&!o.syncedAt));
+  const odooOrders=orders.filter(o=>!localOnlyOrders.includes(o));
+  const rev=odooOrders.filter(o=>o.status!=="Cancelled").reduce((s,o)=>s+o.total,0);
+  const pend=odooOrders.filter(o=>o.status==="Pending").length;
   const sc={Pending:"bpend",Processing:"bproc",Delivered:"bdel",Cancelled:"bcan"};
   const tabs=[{id:"dashboard",ico:"📊",l:"Dashboard"},{id:"products",ico:"💎",l:"Products"},{id:"orders",ico:"📦",l:"Orders"},{id:"promotions",ico:"🏷️",l:"Promotions"}];
   const unsyncedCount=orders.filter(o=>!o.odooOrderId&&!o.syncedAt&&o.status!=="Cancelled").length;
+  useEffect(()=>{
+    if(tab==="dashboard"){
+      syncOrdersFromOdoo();
+      syncProductsFromOdoo();
+      syncPromosFromOdoo();
+    }else if(tab==="orders"){
+      syncOrdersFromOdoo();
+    }else if(tab==="products"){
+      syncProductsFromOdoo();
+    }else if(tab==="promotions"){
+      syncPromosFromOdoo();
+    }
+  },[tab, syncOrdersFromOdoo, syncProductsFromOdoo, syncPromosFromOdoo]);
 
   return(
     <div className="awrap">
@@ -1020,6 +1062,9 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
           <div className="ahd">
             <div className="atitle">Orders ({orders.length})</div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              <button className="bsm2" onClick={syncOrdersFromOdoo} disabled={ordersPulling||!SYNC_CONFIG.ordersEnabled}>
+                {ordersPulling?"Loading...":"↻ Refresh from Odoo"}
+              </button>
               <button className="bsm2" onClick={syncAll} disabled={!SYNC_CONFIG.ordersEnabled||syncingIds.length>0}>
                 🔄 Sync Unsynced ({unsyncedCount})
               </button>
@@ -1027,12 +1072,13 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
                 {SYNC_CONFIG.ordersEnabled?"Manual Odoo sync":"Odoo sync disabled"}
               </span>
               {syncMsg&&<span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>{syncMsg}</span>}
+              {pullMsg&&<span style={{fontSize:".75rem",color:"var(--m)",alignSelf:"center"}}>{pullMsg}</span>}
             </div>
           </div>
           <div className="tcard">
             {orders.length===0?<div style={{padding:60,textAlign:"center",color:"var(--m)"}}>No orders yet!</div>:(
               <table className="t"><thead><tr><th>Order ID</th><th>Customer</th><th>Phone</th><th>District</th><th>Total</th><th>Pay</th><th>Status</th><th>Odoo</th><th>Update</th></tr></thead>
-                <tbody>{orders.slice().reverse().map(o=>{
+              <tbody>{[...localOnlyOrders, ...odooOrders].slice().reverse().map(o=>{
                   const synced=!!(o.odooOrderId||o.syncedAt);
                   const syncing=syncingIds.includes(o.orderId);
                   return(
@@ -1050,7 +1096,9 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
                       </td>
                       <td><span className={`badge ${sc[o.status]}`}>{o.status}</span></td>
                       <td>
-                        {synced?(
+                        {o.localOnly?(
+                          <span className="badge bpend">Local</span>
+                        ):synced?(
                           <>
                             <span className="badge bsuc">Synced</span>
                             {o.odooOrderId&&<div style={{fontFamily:"monospace",fontSize:".7rem",color:"var(--m)",marginTop:4}}>{o.odooOrderId}</div>}
@@ -1060,7 +1108,13 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
                         )}
                         {o.syncError&&<div style={{fontSize:".7rem",color:"var(--red)",marginTop:4}}>{o.syncError}</div>}
                       </td>
-                      <td><select className="fi" style={{padding:"5px 8px",fontSize:".75rem",width:118}} value={o.status} onChange={e=>setOrders(orders.map(x=>x.orderId===o.orderId?{...x,status:e.target.value}:x))}>{["Pending","Processing","Delivered","Cancelled"].map(s=><option key={s}>{s}</option>)}</select></td>
+                      <td>
+                        {o.localOnly?(
+                          <select className="fi" style={{padding:"5px 8px",fontSize:".75rem",width:118}} value={o.status} onChange={e=>setOrders(orders.map(x=>x.orderId===o.orderId?{...x,status:e.target.value}:x))}>{["Pending","Processing","Delivered","Cancelled"].map(s=><option key={s}>{s}</option>)}</select>
+                        ):(
+                          <span style={{fontSize:".75rem",color:"var(--m)"}}>Odoo</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}</tbody>
@@ -1204,7 +1258,7 @@ export default function App(){
   const removeItem=id=>setCart(p=>p.filter(i=>i.cartId!==id));
   const cartCount=cart.reduce((s,i)=>s+i.qty,0);
   const placeOrder=async(data)=>{
-    const order={...data,odooOrderId:null,syncedAt:null,syncError:null};
+    const order={...data,odooOrderId:null,syncedAt:null,syncError:null,localOnly:true};
     setOrders(p=>[...p,order]);
     setCart([]);
     setCoupon(null);
