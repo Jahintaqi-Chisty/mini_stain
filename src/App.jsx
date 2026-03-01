@@ -613,7 +613,7 @@ function CartSide({cart,onClose,updateQty,removeItem,onCheckout,coupon,setCoupon
         {cart.length===0?<div className="empty"><div className="eico">🛍</div><div>Your cart is empty</div><button className="bg" style={{padding:"10px 22px",fontSize:".82rem"}} onClick={onClose}>Start Shopping</button></div>
           :cart.map(item=>(
             <div key={item.cartId} className="ci">
-              <img className="ciimg" src={item.image||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200"} alt=""/>
+              <img className="ciimg" src={item.image||FALLBACK_IMG_200} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/>
               <div className="ciinf">
                 <div className="cinm">{item.name}</div>
                 <div className="civ">{item.variant}{item.size?` · Size ${item.size}`:""}</div>
@@ -755,7 +755,7 @@ function Checkout({cart,coupon,onPlace,onBack}){
               <div className="sumtitle">Order Summary</div>
               {cart.map(item=>(
                 <div key={item.cartId} className="si_">
-                  <img className="siimg" src={item.image||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200"} alt=""/>
+                  <img className="siimg" src={item.image||FALLBACK_IMG_200} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/>
                   <div className="siinf"><div className="sinm">{item.name}</div><div className="siv">{item.variant} · Qty: {item.qty}{item.size?` · Size ${item.size}`:""}</div></div>
                   <div className="sip">{fmt(item.price*item.qty)}</div>
                 </div>
@@ -921,10 +921,10 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
           </div>
           <div className="tcard">
             <table className="t"><thead><tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Sale</th><th>Stock</th><th>Odoo ID</th><th>View</th></tr></thead>
-              <tbody>{products.map(p=>{const img=p.variants?.[0]?.images?.[0]||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200";const odooId=p.odooProductId||p.id;const tmplId=p.odooTemplateId;return(
-                <tr key={p.id}>
-                  <td><img className="pthmb" src={img} alt=""/></td>
-                  <td style={{fontWeight:500,cursor:"pointer"}} onClick={()=>onViewProduct&&onViewProduct(p)}>{p.name}</td>
+              <tbody>{products.map(p=>{const img=p.variants?.[0]?.images?.[0]||FALLBACK_IMG_200;const odooId=p.odooProductId||p.id;const tmplId=p.odooTemplateId;return(
+                <tr key={p.id} style={{cursor:"pointer"}} onClick={()=>onViewProduct&&onViewProduct(p)}>
+                  <td><img className="pthmb" src={img} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/></td>
+                  <td style={{fontWeight:500}}>{p.name}</td>
                   <td><span className="badge bcat">{p.category}</span></td>
                   <td style={{color:"var(--g)"}}>{fmt(p.price)}</td>
                   <td>{p.salePercent>0?<span className="badge bsale">−{p.salePercent}%</span>:<span style={{color:"var(--m)"}}>—</span>}</td>
@@ -933,7 +933,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
                     {odooId||"—"}
                     {tmplId&&tmplId!==odooId&&<div style={{fontSize:".7rem",color:"var(--m)",marginTop:4}}>tmpl {tmplId}</div>}
                   </td>
-                  <td><button className="bsm2" onClick={()=>onViewProduct&&onViewProduct(p)}>View</button></td>
+                  <td><button className="bsm2" onClick={e=>{e.stopPropagation();onViewProduct&&onViewProduct(p);}}>View</button></td>
                 </tr>);})}</tbody>
             </table>
           </div>
@@ -1031,7 +1031,7 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
               </div>
               {vOrder.address.notes&&<div style={{background:"var(--s2)",border:"1px solid var(--b)",borderRadius:8,padding:10,fontSize:".82rem",marginBottom:14}}><b>Notes:</b> {vOrder.address.notes}</div>}
               <hr className="dv"/>
-              {vOrder.items.map(i=><div key={i.cartId} className="si_" style={{marginBottom:10}}><img className="siimg" src={i.image||"https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200"} alt=""/><div className="siinf"><div className="sinm">{i.name}</div><div className="siv">{i.variant} · Qty: {i.qty}{i.size?` · Size ${i.size}`:""}</div></div><div className="sip">{fmt(i.price*i.qty)}</div></div>)}
+              {vOrder.items.map(i=><div key={i.cartId} className="si_" style={{marginBottom:10}}><img className="siimg" src={i.image||FALLBACK_IMG_200} alt="" onError={e=>{e.currentTarget.src=FALLBACK_IMG_200;}}/><div className="siinf"><div className="sinm">{i.name}</div><div className="siv">{i.variant} · Qty: {i.qty}{i.size?` · Size ${i.size}`:""}</div></div><div className="sip">{fmt(i.price*i.qty)}</div></div>)}
               <hr className="dv"/>
               {vOrder.discount>0&&<div className="srow discrow"><span>Discount ({vOrder.coupon})</span><span>−{fmt(vOrder.discount)}</span></div>}
               <div className="srow"><span>Delivery ({isDhaka(vOrder.address.district)?"Inside Dhaka":"Outside Dhaka"})</span><span>{fmt(vOrder.shipping)}</span></div>

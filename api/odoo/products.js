@@ -59,6 +59,11 @@ function buildVariantLabel(attrs, sizeValues) {
   return "Default";
 }
 
+function pushUnique(arr, value) {
+  if (!value) return;
+  if (!arr.includes(value)) arr.push(value);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.status(405).json({ error: "Method not allowed" });
@@ -179,6 +184,51 @@ export default async function handler(req, res) {
       : [];
     const tmplMap = new Map((Array.isArray(tmplRows) ? tmplRows : []).map((t) => [t.id, t]));
 
+    let imageRows = [];
+    try {
+      const imageFields = ["id", "product_variant_id", "product_tmpl_id", "image_1920", "sequence"];
+      const imageFieldsInfo = await executeKw(
+        baseUrl,
+        db,
+        uid,
+        apiKey,
+        "product.image",
+        "fields_get",
+        [imageFields],
+        { attributes: ["type"] }
+      );
+      const availableImageFields = imageFields.filter((f) => imageFieldsInfo && imageFieldsInfo[f]);
+      if (availableImageFields.length > 0 && templateIds.size > 0) {
+        imageRows = await executeKw(
+          baseUrl,
+          db,
+          uid,
+          apiKey,
+          "product.image",
+          "search_read",
+          [[[ "product_tmpl_id", "in", Array.from(templateIds) ]]],
+          { fields: availableImageFields, order: "sequence, id" }
+        );
+      }
+    } catch {
+      imageRows = [];
+    }
+
+    const imgByVariant = new Map();
+    const imgByTemplate = new Map();
+    (Array.isArray(imageRows) ? imageRows : []).forEach((im) => {
+      const url = `${baseUrl}/web/image/product.image/${im.id}/image_1920`;
+      const variantId = Array.isArray(im.product_variant_id) ? im.product_variant_id[0] : im.product_variant_id;
+      const templateId = Array.isArray(im.product_tmpl_id) ? im.product_tmpl_id[0] : im.product_tmpl_id;
+      if (variantId) {
+        if (!imgByVariant.has(variantId)) imgByVariant.set(variantId, []);
+        pushUnique(imgByVariant.get(variantId), url);
+      } else if (templateId) {
+        if (!imgByTemplate.has(templateId)) imgByTemplate.set(templateId, []);
+        pushUnique(imgByTemplate.get(templateId), url);
+      }
+    });
+
     const attrFieldName = fieldsInfo?.attribute_value_ids
       ? "attribute_value_ids"
       : fieldsInfo?.product_template_attribute_value_ids
@@ -249,11 +299,26 @@ export default async function handler(req, res) {
         if (!base.sizes.includes(s)) base.sizes.push(s);
       });
 
-      const variantHasImage = !!r.image_1920;
-      const templateHasImage = !!tmpl.image_1920;
       const variantUrl = `${baseUrl}/web/image/product.product/${r.id}/image_1920`;
       const templateUrl = templateId ? `${baseUrl}/web/image/product.template/${templateId}/image_1920` : "";
-      const image = variantHasImage ? variantUrl : templateHasImage ? templateUrl : "";
+      const images = [];
+      const variantImgs = imgByVariant.get(r.id) || [];
+      const templateImgs = imgByTemplate.get(templateId) || [];
+      variantImgs.forEach((u) => pushUnique(images, u));
+      if (images.length === 0) {
+        templateImgs.forEach((u) => pushUnique(images, u));
+      }
+      if (images.length === 0) {
+        pushUnique(images, variantUrl);
+        pushUnique(images, templateUrl);
+      }
+      const variantPrice = Number(
+        typeof r.lst_price === "number"
+          ? r.lst_price
+          : typeof r.list_price === "number"
+            ? r.list_price
+            : tmpl.list_price || 0
+      );
       const stockVal =
         typeof r.qty_available === "number"
           ? r.qty_available
@@ -264,8 +329,10 @@ export default async function handler(req, res) {
       base.variants.push({
         label: buildVariantLabel(attrs, sizeValues),
         color: pickColor(attrs),
-        images: image ? [image] : [],
+        images,
         odooProductId: r.id,
+        price: variantPrice,
+        originalPrice: variantPrice,
       });
     });
 
