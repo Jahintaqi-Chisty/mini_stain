@@ -444,12 +444,14 @@ const SYNC_CONFIG = {
   ordersEnabled: true,   // manual sync only (button press)
   productsEnabled: true, // pull from Odoo
   promosEnabled: true,   // pull from Odoo
+  settingsEnabled: true, // global settings (theme)
   baseUrl: "",           // same origin on Vercel
   endpoints: {
     orderSync: "/api/odoo/order",      // POST order payload
     ordersPull: "/api/odoo/orders",    // GET orders from Odoo
     productsPull: "/api/odoo/products", // GET products from Odoo
-    promosPull: "/api/odoo/promotions"  // GET promotions from Odoo
+    promosPull: "/api/odoo/promotions", // GET promotions from Odoo
+    settings: "/api/odoo/settings"      // GET/POST global settings
   },
 };
 
@@ -487,6 +489,19 @@ async function fetchProductsFromOdoo() {
 async function fetchPromosFromOdoo() {
   if (!SYNC_CONFIG.promosEnabled) return null;
   return apiJSON(SYNC_CONFIG.endpoints.promosPull, { method: "GET" });
+}
+
+async function fetchSettingsFromOdoo() {
+  if (!SYNC_CONFIG.settingsEnabled) return null;
+  return apiJSON(SYNC_CONFIG.endpoints.settings, { method: "GET" });
+}
+
+async function saveSettingsToOdoo(settings) {
+  if (!SYNC_CONFIG.settingsEnabled) return null;
+  return apiJSON(SYNC_CONFIG.endpoints.settings, {
+    method: "POST",
+    body: JSON.stringify(settings || {}),
+  });
 }
 
 const payLabel = (m) => (m === "cod" ? "COD" : m === "bkash" ? "bKash" : m === "nagad" ? "Nagad" : String(m || ""));
@@ -1022,7 +1037,7 @@ function OrderSuc({order,onContinue}){
 }
 
 // Admin Panel
-function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onViewProduct,theme,onThemeChange}){
+function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onViewProduct,theme,onThemeChange,themeSaving,themeStatus}){
   const[pullMsg,setPullMsg]=useState("");
   const[ordersPulling,setOrdersPulling]=useState(false);
   const syncOrdersFromOdoo=useCallback(async()=>{
@@ -1233,7 +1248,12 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
           <div className="ahd"><div className="atitle">Settings</div></div>
           {settingsTab==="theme"&&(
             <div className="tcard">
-              <div className="tchd"><div className="tchtitle">Theme</div></div>
+              <div className="tchd">
+                <div className="tchtitle">Theme</div>
+                <div style={{fontSize:".72rem",color:"var(--m)"}}>
+                  {themeSaving?"Saving...":themeStatus||"Global for all visitors"}
+                </div>
+              </div>
               <div style={{padding:18}}>
                 <div className="themegrid">
                   {THEMES.map((t)=>(
@@ -1378,6 +1398,17 @@ export default function App(){
   },[setProducts,setPromos]);
   useEffect(()=>{applyThemeVars(theme);},[theme]);
   useEffect(()=>{
+    (async()=>{
+      try{
+        const remote=await fetchSettingsFromOdoo();
+        const remoteTheme=String(remote?.theme||"").trim();
+        if(remoteTheme && THEMES.some(t=>t.id===remoteTheme)) setTheme(remoteTheme);
+      }catch(e){
+        setThemeStatus("Odoo settings unavailable");
+      }
+    })();
+  },[setTheme]);
+  useEffect(()=>{
     if(!products.length) return;
     const syncFromUrl=()=>{
       const pid=getProductIdFromUrl();
@@ -1399,11 +1430,19 @@ export default function App(){
   const[checkout,setCheckout]=useState(false);
   const[sucOrder,setSucOrder]=useState(null);
   const[toast,setToast]=useState(null);
+  const[themeSaving,setThemeSaving]=useState(false);
+  const[themeStatus,setThemeStatus]=useState("");
   const showToast=(msg,icon="✦")=>setToast({msg,icon});
   const updateTheme=(id)=>{
     const t=THEMES.find(x=>x.id===id)||THEMES[0];
     setTheme(t.id);
     showToast(`Theme set to ${t.label}`,"🎨");
+    setThemeStatus("");
+    setThemeSaving(true);
+    saveSettingsToOdoo({ theme: t.id })
+      .then(()=>{setThemeStatus("Saved to Odoo");})
+      .catch((e)=>{setThemeStatus("Save failed");showToast(e?.message||"Theme save failed","⚠️");})
+      .finally(()=>setThemeSaving(false));
   };
   const openProduct=(product, { replace = false } = {})=>{
     if(!product) return;
@@ -1454,7 +1493,7 @@ export default function App(){
 
   if(page==="adminlogin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={false} logoutAdmin={logout}/><AdminLogin onLogin={()=>{setAdminAuth(true);setPage("admin");}}/></>);
   if(page==="success"&&sucOrder)return(<><Navbar page="shop" setPage={setPage2} cartCount={0} openCart={()=>{}} isAdmin={adminAuth} logoutAdmin={logout}/><OrderSuc order={sucOrder} onContinue={()=>{setPage("shop");setSucOrder(null);}}/></>);
-  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos} onViewProduct={(p)=>openProduct(p)} theme={theme} onThemeChange={updateTheme}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
+  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos} onViewProduct={(p)=>openProduct(p)} theme={theme} onThemeChange={updateTheme} themeSaving={themeSaving} themeStatus={themeStatus}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
   if(checkout)return(<><Navbar page="shop" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><Checkout cart={cart} coupon={coupon} onPlace={placeOrder} onBack={()=>{setCheckout(false);setCartOpen(true);}}/></>);
   return(
     <>
