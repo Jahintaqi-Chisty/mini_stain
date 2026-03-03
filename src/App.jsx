@@ -24,72 +24,57 @@ const INITIAL_PROMOS = [];
 const INIT_PRODUCTS = [];
 const THEMES = [
   {
-    id: "gold",
-    label: "Gold Noir",
-    desc: "Classic midnight gold accents",
-    preview: { bg: "#0A0A0A", surface: "#181818", accent: "#C8A94C", accent2: "#E8CC7A" },
+    id: "luxe",
+    label: "Editorial Luxe",
+    desc: "Light, airy catalog with warm accents",
+    preview: { bg: "#F7F1E9", surface: "#F1E7DC", accent: "#B37A4C", accent2: "#D9A178" },
     vars: {
-      "--bg": "#0A0A0A",
-      "--s": "#111",
-      "--s2": "#181818",
-      "--s3": "#202020",
-      "--b": "rgba(255,255,255,.07)",
-      "--b2": "rgba(255,255,255,.12)",
-      "--g": "#C8A94C",
-      "--g2": "#E8CC7A",
-      "--t": "#F2EDE5",
-      "--m": "#7A7A7A",
-      "--m2": "#555",
-      "--red": "#D95B5B",
-      "--grn": "#5AB88A",
-      "--blu": "#5B8DD9",
-      "--sh": "0 20px 60px rgba(0,0,0,.6)",
+      "--bg": "#F7F1E9",
+      "--s": "#FFF9F1",
+      "--s2": "#F1E7DC",
+      "--s3": "#E9DED2",
+      "--b": "rgba(38,30,24,.08)",
+      "--b2": "rgba(38,30,24,.14)",
+      "--g": "#B37A4C",
+      "--g2": "#D9A178",
+      "--t": "#2D2722",
+      "--m": "#7A6E66",
+      "--m2": "#5F554E",
+      "--red": "#C55C5C",
+      "--grn": "#3B9F7A",
+      "--blu": "#4B7DA6",
+      "--r": "14px",
+      "--r2": "22px",
+      "--fd": "'Playfair Display', serif",
+      "--fb": "'Source Sans 3', sans-serif",
+      "--sh": "0 18px 50px rgba(28,22,18,.18)",
     },
   },
   {
-    id: "emerald",
-    label: "Emerald Noir",
-    desc: "Deep green glow on black",
-    preview: { bg: "#0A0F0D", surface: "#15201C", accent: "#3BCF9A", accent2: "#8CE7C4" },
+    id: "studio",
+    label: "Noir Studio",
+    desc: "High-contrast, sharp, gallery tone",
+    preview: { bg: "#0A0E12", surface: "#131B24", accent: "#3CC5FF", accent2: "#7CEBFF" },
     vars: {
-      "--bg": "#0A0F0D",
-      "--s": "#101815",
-      "--s2": "#15201C",
-      "--s3": "#1A2722",
-      "--b": "rgba(255,255,255,.07)",
-      "--b2": "rgba(255,255,255,.12)",
-      "--g": "#3BCF9A",
-      "--g2": "#8CE7C4",
-      "--t": "#EEF6F2",
-      "--m": "#7F8B86",
-      "--m2": "#5E6662",
-      "--red": "#D95B5B",
-      "--grn": "#3BCF9A",
-      "--blu": "#58A9A1",
-      "--sh": "0 20px 60px rgba(0,0,0,.55)",
-    },
-  },
-  {
-    id: "rose",
-    label: "Rose Noir",
-    desc: "Rose-gold warmth, midnight base",
-    preview: { bg: "#0B0A0A", surface: "#1D1717", accent: "#D79A8C", accent2: "#F1C7BE" },
-    vars: {
-      "--bg": "#0B0A0A",
-      "--s": "#151212",
-      "--s2": "#1D1717",
-      "--s3": "#241D1D",
-      "--b": "rgba(255,240,236,.08)",
-      "--b2": "rgba(255,240,236,.14)",
-      "--g": "#D79A8C",
-      "--g2": "#F1C7BE",
-      "--t": "#F6EEEB",
-      "--m": "#8A7A76",
-      "--m2": "#645551",
-      "--red": "#D95B5B",
-      "--grn": "#6EBE9D",
-      "--blu": "#B6879A",
-      "--sh": "0 20px 60px rgba(0,0,0,.6)",
+      "--bg": "#0A0E12",
+      "--s": "#0F141B",
+      "--s2": "#131B24",
+      "--s3": "#18212C",
+      "--b": "rgba(255,255,255,.08)",
+      "--b2": "rgba(255,255,255,.16)",
+      "--g": "#3CC5FF",
+      "--g2": "#7CEBFF",
+      "--t": "#EAF2FA",
+      "--m": "#7C8CA0",
+      "--m2": "#566170",
+      "--red": "#FF6B6B",
+      "--grn": "#47D7AC",
+      "--blu": "#3CC5FF",
+      "--r": "6px",
+      "--r2": "12px",
+      "--fd": "'Space Grotesk', sans-serif",
+      "--fb": "'DM Sans', sans-serif",
+      "--sh": "0 22px 70px rgba(0,0,0,.55)",
     },
   },
 ];
@@ -107,9 +92,9 @@ function applyThemeVars(themeId) {
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{--bg:#0A0A0A;--s:#111;--s2:#181818;--s3:#202020;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.12);--g:#C8A94C;--g2:#E8CC7A;--t:#F2EDE5;--m:#7A7A7A;--m2:#555;--red:#D95B5B;--grn:#5AB88A;--blu:#5B8DD9;--r:10px;--r2:16px;--fd:'Cormorant Garamond',serif;--fb:'Inter',sans-serif;--sh:0 20px 60px rgba(0,0,0,.6);} 
+:root{--bg:#F7F1E9;--s:#FFF9F1;--s2:#F1E7DC;--s3:#E9DED2;--b:rgba(38,30,24,.08);--b2:rgba(38,30,24,.14);--g:#B37A4C;--g2:#D9A178;--t:#2D2722;--m:#7A6E66;--m2:#5F554E;--red:#C55C5C;--grn:#3B9F7A;--blu:#4B7DA6;--r:14px;--r2:22px;--fd:'Playfair Display',serif;--fb:'Source Sans 3',sans-serif;--sh:0 18px 50px rgba(28,22,18,.18);} 
 body{font-family:var(--fb);background:var(--bg);color:var(--t);-webkit-font-smoothing:antialiased;}
 button{cursor:pointer;border:none;font-family:var(--fb);} 
 input,select,textarea{font-family:var(--fb);} 
@@ -312,6 +297,11 @@ hr.dv{border:none;border-top:1px solid var(--b);margin:13px 0;}
 .aslogo{padding:0 20px 16px;font-family:var(--fd);font-size:1rem;color:var(--g);border-bottom:1px solid var(--b);margin-bottom:8px;} 
 .aitm{width:100%;padding:11px 20px;display:flex;align-items:center;gap:11px;font-size:.82rem;font-weight:500;color:var(--m);background:none;border:none;text-align:left;transition:all .2s;border-left:3px solid transparent;} 
 .aitm:hover,.aitm.on{color:var(--g);background:rgba(200,169,76,.05);border-left-color:var(--g);} 
+.asub{margin:0 12px 12px 12px;padding:10px 8px 6px;border-left:2px solid var(--b);display:flex;flex-direction:column;gap:6px;} 
+.asubtitle{font-size:.62rem;text-transform:uppercase;letter-spacing:.16em;color:var(--m);margin:0 6px 4px;} 
+.asubitm{padding:8px 10px;border-radius:8px;font-size:.78rem;font-weight:500;color:var(--m);background:var(--s2);border:1px solid var(--b);text-align:left;transition:all .2s;} 
+.asubitm:hover{border-color:var(--b2);color:var(--t);} 
+.asubitm.on{border-color:var(--g);color:var(--g);background:rgba(200,169,76,.07);} 
 .amain{flex:1;padding:28px;overflow-y:auto;} 
 .ahd{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;} 
 .atitle{font-family:var(--fd);font-size:1.7rem;} 
@@ -383,6 +373,36 @@ table.t tr:hover td{background:var(--s2);}
 .trus{display:flex;justify-content:center;gap:clamp(16px,4vw,72px);flex-wrap:wrap;} 
 .tri{display:flex;align-items:center;gap:8px;color:var(--m);font-size:.82rem;} 
 @media(max-width:600px){.frow{grid-template-columns:1fr;}.dgrid{grid-template-columns:1fr;}.nbtn{display:none;}} 
+
+html[data-theme="luxe"] .nav{background:rgba(247,241,233,.92);border-bottom:1px solid rgba(38,30,24,.12);} 
+html[data-theme="luxe"] .nlogo{letter-spacing:.1em;} 
+html[data-theme="luxe"] .pb{color:var(--t);} 
+html[data-theme="luxe"] .hero{min-height:78vh;text-align:left;align-items:flex-end;background:radial-gradient(ellipse 70% 50% at 20% 30%,rgba(179,122,76,.18) 0%,transparent 60%),linear-gradient(135deg,#F7F1E9 0%,#EFE4D7 100%);} 
+html[data-theme="luxe"] .hero-in{text-align:left;max-width:860px;} 
+html[data-theme="luxe"] .hero h1{font-weight:600;} 
+html[data-theme="luxe"] .hacts{justify-content:flex-start;} 
+html[data-theme="luxe"] .pcard{box-shadow:0 18px 45px rgba(28,22,18,.15);} 
+html[data-theme="luxe"] .pbadge{border-radius:999px;} 
+html[data-theme="luxe"] .pimg{border-bottom:1px solid var(--b);} 
+html[data-theme="luxe"] .trubar{background:var(--s2);} 
+html[data-theme="luxe"] .footer{background:var(--s2);margin-top:56px;} 
+
+html[data-theme="studio"] .nav{background:rgba(9,12,16,.92);border-bottom:1px solid rgba(60,197,255,.2);} 
+html[data-theme="studio"] .nlogo{letter-spacing:.04em;text-transform:uppercase;} 
+html[data-theme="studio"] .pb{background:linear-gradient(90deg,#0D1B26 0%,#0F2230 100%);color:var(--t);border-bottom:1px solid rgba(60,197,255,.2);} 
+html[data-theme="studio"] .hero{min-height:86vh;text-align:left;align-items:center;background:linear-gradient(120deg,#0A0E12 0%,#0E1822 45%,#0A0E12 100%);} 
+html[data-theme="studio"] .hero::before{background:linear-gradient(90deg,rgba(60,197,255,.12),transparent 60%);} 
+html[data-theme="studio"] .hero-in{text-align:left;max-width:760px;} 
+html[data-theme="studio"] .hero h1{text-transform:uppercase;letter-spacing:.02em;} 
+html[data-theme="studio"] .hacts{justify-content:flex-start;} 
+html[data-theme="studio"] .pgrid{gap:16px;} 
+html[data-theme="studio"] .pcard{border-radius:12px;border-color:rgba(60,197,255,.25);} 
+html[data-theme="studio"] .pimg{aspect-ratio:4/5;} 
+html[data-theme="studio"] .bg{background:linear-gradient(135deg,var(--g),#4BF2E3);color:#031018;} 
+html[data-theme="studio"] .bg:hover{box-shadow:0 12px 30px rgba(60,197,255,.35);} 
+html[data-theme="studio"] .bgh{border-color:rgba(60,197,255,.35);} 
+html[data-theme="studio"] .trubar{background:#0C1016;border-top:1px solid rgba(60,197,255,.18);border-bottom:1px solid rgba(60,197,255,.18);} 
+html[data-theme="studio"] .footer{background:#0C1016;} 
 `;
 
 function injectCSS(){const s=document.createElement("style");s.textContent=CSS;document.head.appendChild(s);}
@@ -1023,12 +1043,13 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
     }
   }, [setPromos, setPromoSyncMsg, setPromoSyncing]);
   const[tab,setTab]=useState("dashboard");
+  const[settingsTab,setSettingsTab]=useState("theme");
   const[vOrder,setVO]=useState(null);
   const rev=orders.filter(o=>o.status!=="Cancelled").reduce((s,o)=>s+o.total,0);
   const pend=orders.filter(o=>o.status==="Pending").length;
   const displayOrders=[...orders].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const sc={Pending:"bpend",Processing:"bproc",Delivered:"bdel",Cancelled:"bcan"};
-  const tabs=[{id:"dashboard",ico:"📊",l:"Dashboard"},{id:"products",ico:"💎",l:"Products"},{id:"orders",ico:"📦",l:"Orders"},{id:"promotions",ico:"🏷️",l:"Promotions"}];
+  const tabs=[{id:"dashboard",ico:"📊",l:"Dashboard"},{id:"products",ico:"💎",l:"Products"},{id:"orders",ico:"📦",l:"Orders"},{id:"promotions",ico:"🏷️",l:"Promotions"},{id:"settings",ico:"⚙️",l:"Settings"}];
   useEffect(()=>{
     if(tab==="dashboard"){
       syncOrdersFromOdoo();
@@ -1048,6 +1069,12 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
       <div className="aside">
         <div className="aslogo">🔧 Admin Panel</div>
         {tabs.map(t=><button key={t.id} className={`aitm ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}><span>{t.ico}</span>{t.l}</button>)}
+        {tab==="settings"&&(
+          <div className="asub">
+            <div className="asubtitle">Appearance</div>
+            <button className={`asubitm ${settingsTab==="theme"?"on":""}`} onClick={()=>setSettingsTab("theme")}>Themes</button>
+          </div>
+        )}
       </div>
       <div className="amain">
         {/* Dashboard */}
@@ -1059,30 +1086,6 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
             <div className="stc"><div className="stv">{fmt(rev)}</div><div className="stl">Revenue</div></div>
             <div className="stc"><div className="stv">{products.length}</div><div className="stl">Products</div></div>
             <div className="stc"><div className="stv">{promos.filter(p=>p.active).length}</div><div className="stl">Active Promos</div></div>
-          </div>
-          <div className="tcard" style={{marginBottom:18}}>
-            <div className="tchd"><div className="tchtitle">Theme</div></div>
-            <div style={{padding:18}}>
-              <div className="themegrid">
-                {THEMES.map((t)=>(
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={`themeopt ${theme===t.id?"on":""}`}
-                    onClick={()=>onThemeChange(t.id)}
-                  >
-                    <div className="themebar" style={{background:`linear-gradient(135deg,${t.preview.accent},${t.preview.accent2})`}}/>
-                    <div className="themelabel">{t.label}</div>
-                    <div className="themedesc">{t.desc}</div>
-                    <div className="themeswatch">
-                      <span style={{background:t.preview.bg}}/>
-                      <span style={{background:t.preview.surface}}/>
-                      <span style={{background:t.preview.accent}}/>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
           <div className="tcard">
             <div className="tchd"><div className="tchtitle">Recent Orders</div></div>
@@ -1198,6 +1201,36 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
             ))}
             {promos.length===0&&<div style={{textAlign:"center",padding:40,color:"var(--m)"}}>No promotions yet</div>}
           </div>
+        </>}
+        {/* Settings */}
+        {tab==="settings"&&<>
+          <div className="ahd"><div className="atitle">Settings</div></div>
+          {settingsTab==="theme"&&(
+            <div className="tcard">
+              <div className="tchd"><div className="tchtitle">Theme</div></div>
+              <div style={{padding:18}}>
+                <div className="themegrid">
+                  {THEMES.map((t)=>(
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`themeopt ${theme===t.id?"on":""}`}
+                      onClick={()=>onThemeChange(t.id)}
+                    >
+                      <div className="themebar" style={{background:`linear-gradient(135deg,${t.preview.accent},${t.preview.accent2})`}}/>
+                      <div className="themelabel">{t.label}</div>
+                      <div className="themedesc">{t.desc}</div>
+                      <div className="themeswatch">
+                        <span style={{background:t.preview.bg}}/>
+                        <span style={{background:t.preview.surface}}/>
+                        <span style={{background:t.preview.accent}}/>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </>}
       </div>
       {vOrder&&(
