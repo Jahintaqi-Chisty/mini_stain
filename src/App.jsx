@@ -96,6 +96,25 @@ function applyThemeVars(themeId) {
   return theme;
 }
 
+function getProductIdFromUrl() {
+  if (typeof window === "undefined") return null;
+  try {
+    const url = new URL(window.location.href);
+    return url.searchParams.get("product");
+  } catch {
+    return null;
+  }
+}
+
+function updateProductInUrl(productId, { replace = false } = {}) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (productId) url.searchParams.set("product", productId);
+  else url.searchParams.delete("product");
+  if (replace) window.history.replaceState({}, "", url.toString());
+  else window.history.pushState({}, "", url.toString());
+}
+
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
@@ -1358,6 +1377,20 @@ export default function App(){
     })();
   },[setProducts,setPromos]);
   useEffect(()=>{applyThemeVars(theme);},[theme]);
+  useEffect(()=>{
+    if(!products.length) return;
+    const syncFromUrl=()=>{
+      const pid=getProductIdFromUrl();
+      if(!pid){setViewProd(null);return;}
+      const found=products.find(p=>String(p.id)===String(pid)||String(p.odooTemplateId)===String(pid));
+      if(found){setPage("shop");setViewProd(found);}
+    };
+    syncFromUrl();
+    if(typeof window!=="undefined"){
+      window.addEventListener("popstate",syncFromUrl);
+      return()=>window.removeEventListener("popstate",syncFromUrl);
+    }
+  },[products]);
   const[adminAuth,setAdminAuth]=useLS("ms_admin",false);
   const[coupon,setCoupon]=useState(null);
   const[page,setPage]=useState("shop");
@@ -1371,6 +1404,16 @@ export default function App(){
     const t=THEMES.find(x=>x.id===id)||THEMES[0];
     setTheme(t.id);
     showToast(`Theme set to ${t.label}`,"🎨");
+  };
+  const openProduct=(product, { replace = false } = {})=>{
+    if(!product) return;
+    setPage("shop");
+    setViewProd(product);
+    updateProductInUrl(product.id, { replace });
+  };
+  const closeProduct=({ replace = false } = {})=>{
+    setViewProd(null);
+    updateProductInUrl(null, { replace });
   };
   const addToCart=(product,vi,qty=1,size="")=>{
     const v=product.variants[vi];
@@ -1406,17 +1449,17 @@ export default function App(){
       showToast(e?.message||"Order sync failed","⚠️");
     }
   };
-  const setPage2=p=>{if(p==="admin"&&!adminAuth){setPage("adminlogin");return;}setPage(p);setViewProd(null);};
+  const setPage2=p=>{if(p==="admin"&&!adminAuth){setPage("adminlogin");return;}setPage(p);setViewProd(null);updateProductInUrl(null,{replace:true});};
   const logout=()=>{setAdminAuth(false);setPage("shop");};
 
   if(page==="adminlogin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={false} logoutAdmin={logout}/><AdminLogin onLogin={()=>{setAdminAuth(true);setPage("admin");}}/></>);
   if(page==="success"&&sucOrder)return(<><Navbar page="shop" setPage={setPage2} cartCount={0} openCart={()=>{}} isAdmin={adminAuth} logoutAdmin={logout}/><OrderSuc order={sucOrder} onContinue={()=>{setPage("shop");setSucOrder(null);}}/></>);
-  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos} onViewProduct={(p)=>{setPage("shop");setViewProd(p);}} theme={theme} onThemeChange={updateTheme}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
+  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos} onViewProduct={(p)=>openProduct(p)} theme={theme} onThemeChange={updateTheme}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
   if(checkout)return(<><Navbar page="shop" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><Checkout cart={cart} coupon={coupon} onPlace={placeOrder} onBack={()=>{setCheckout(false);setCartOpen(true);}}/></>);
   return(
     <>
       <Navbar page={page} setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/>
-      {viewProd?<ProdDetail product={viewProd} onBack={()=>setViewProd(null)} onAddToCart={addToCart}/>:<Shop products={products} promos={promos} onView={setViewProd} onAddToCart={addToCart} loading={productsLoading}/>}
+      {viewProd?<ProdDetail product={viewProd} onBack={()=>closeProduct()} onAddToCart={addToCart}/>:<Shop products={products} promos={promos} onView={openProduct} onAddToCart={addToCart} loading={productsLoading}/>}
       {cartOpen&&<CartSide cart={cart} onClose={()=>setCartOpen(false)} updateQty={updateQty} removeItem={removeItem} onCheckout={()=>{setCartOpen(false);setCheckout(true);}} coupon={coupon} setCoupon={setCoupon} promos={promos}/>}
       {toast&&<Toast {...toast} onClose={()=>setToast(null)}/>
       }
