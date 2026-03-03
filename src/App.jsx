@@ -22,6 +22,88 @@ const attrColor = (value="")=>{
 };
 const INITIAL_PROMOS = [];
 const INIT_PRODUCTS = [];
+const THEMES = [
+  {
+    id: "gold",
+    label: "Gold Noir",
+    desc: "Classic midnight gold accents",
+    preview: { bg: "#0A0A0A", surface: "#181818", accent: "#C8A94C", accent2: "#E8CC7A" },
+    vars: {
+      "--bg": "#0A0A0A",
+      "--s": "#111",
+      "--s2": "#181818",
+      "--s3": "#202020",
+      "--b": "rgba(255,255,255,.07)",
+      "--b2": "rgba(255,255,255,.12)",
+      "--g": "#C8A94C",
+      "--g2": "#E8CC7A",
+      "--t": "#F2EDE5",
+      "--m": "#7A7A7A",
+      "--m2": "#555",
+      "--red": "#D95B5B",
+      "--grn": "#5AB88A",
+      "--blu": "#5B8DD9",
+      "--sh": "0 20px 60px rgba(0,0,0,.6)",
+    },
+  },
+  {
+    id: "emerald",
+    label: "Emerald Noir",
+    desc: "Deep green glow on black",
+    preview: { bg: "#0A0F0D", surface: "#15201C", accent: "#3BCF9A", accent2: "#8CE7C4" },
+    vars: {
+      "--bg": "#0A0F0D",
+      "--s": "#101815",
+      "--s2": "#15201C",
+      "--s3": "#1A2722",
+      "--b": "rgba(255,255,255,.07)",
+      "--b2": "rgba(255,255,255,.12)",
+      "--g": "#3BCF9A",
+      "--g2": "#8CE7C4",
+      "--t": "#EEF6F2",
+      "--m": "#7F8B86",
+      "--m2": "#5E6662",
+      "--red": "#D95B5B",
+      "--grn": "#3BCF9A",
+      "--blu": "#58A9A1",
+      "--sh": "0 20px 60px rgba(0,0,0,.55)",
+    },
+  },
+  {
+    id: "rose",
+    label: "Rose Noir",
+    desc: "Rose-gold warmth, midnight base",
+    preview: { bg: "#0B0A0A", surface: "#1D1717", accent: "#D79A8C", accent2: "#F1C7BE" },
+    vars: {
+      "--bg": "#0B0A0A",
+      "--s": "#151212",
+      "--s2": "#1D1717",
+      "--s3": "#241D1D",
+      "--b": "rgba(255,240,236,.08)",
+      "--b2": "rgba(255,240,236,.14)",
+      "--g": "#D79A8C",
+      "--g2": "#F1C7BE",
+      "--t": "#F6EEEB",
+      "--m": "#8A7A76",
+      "--m2": "#645551",
+      "--red": "#D95B5B",
+      "--grn": "#6EBE9D",
+      "--blu": "#B6879A",
+      "--sh": "0 20px 60px rgba(0,0,0,.6)",
+    },
+  },
+];
+
+function applyThemeVars(themeId) {
+  if (typeof document === "undefined") return THEMES[0];
+  const theme = THEMES.find((t) => t.id === themeId) || THEMES[0];
+  const root = document.documentElement;
+  Object.entries(theme.vars).forEach(([key, value]) => {
+    root.style.setProperty(key, value);
+  });
+  root.dataset.theme = theme.id;
+  return theme;
+}
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
@@ -237,6 +319,15 @@ hr.dv{border:none;border-top:1px solid var(--b);margin:13px 0;}
 .stc{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);padding:20px;text-align:center;} 
 .stv{font-family:var(--fd);font-size:2rem;font-weight:700;color:var(--g);} 
 .stl{font-size:.72rem;color:var(--m);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;} 
+.themegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;} 
+.themeopt{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;text-align:left;transition:all .2s;} 
+.themeopt:hover{border-color:var(--b2);transform:translateY(-1px);} 
+.themeopt.on{border-color:var(--g);box-shadow:0 12px 30px rgba(0,0,0,.4);} 
+.themebar{height:10px;border-radius:999px;} 
+.themelabel{font-size:.85rem;font-weight:600;} 
+.themedesc{font-size:.72rem;color:var(--m);line-height:1.4;} 
+.themeswatch{display:flex;gap:6px;} 
+.themeswatch span{width:18px;height:18px;border-radius:50%;border:1px solid var(--b);} 
 .tcard{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);overflow:hidden;} 
 .tchd{padding:14px 18px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;} 
 .tchtitle{font-weight:600;font-size:.9rem;} 
@@ -885,7 +976,7 @@ function OrderSuc({order,onContinue}){
 }
 
 // Admin Panel
-function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onViewProduct}){
+function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onViewProduct,theme,onThemeChange}){
   const[pullMsg,setPullMsg]=useState("");
   const[ordersPulling,setOrdersPulling]=useState(false);
   const syncOrdersFromOdoo=useCallback(async()=>{
@@ -968,6 +1059,30 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
             <div className="stc"><div className="stv">{fmt(rev)}</div><div className="stl">Revenue</div></div>
             <div className="stc"><div className="stv">{products.length}</div><div className="stl">Products</div></div>
             <div className="stc"><div className="stv">{promos.filter(p=>p.active).length}</div><div className="stl">Active Promos</div></div>
+          </div>
+          <div className="tcard" style={{marginBottom:18}}>
+            <div className="tchd"><div className="tchtitle">Theme</div></div>
+            <div style={{padding:18}}>
+              <div className="themegrid">
+                {THEMES.map((t)=>(
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`themeopt ${theme===t.id?"on":""}`}
+                    onClick={()=>onThemeChange(t.id)}
+                  >
+                    <div className="themebar" style={{background:`linear-gradient(135deg,${t.preview.accent},${t.preview.accent2})`}}/>
+                    <div className="themelabel">{t.label}</div>
+                    <div className="themedesc">{t.desc}</div>
+                    <div className="themeswatch">
+                      <span style={{background:t.preview.bg}}/>
+                      <span style={{background:t.preview.surface}}/>
+                      <span style={{background:t.preview.accent}}/>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="tcard">
             <div className="tchd"><div className="tchtitle">Recent Orders</div></div>
@@ -1186,6 +1301,7 @@ export default function App(){
   const[orders,setOrders]=useState([]);
   const[cart,setCart]=useLS("ms_cart",[]);
   const[promos,setPromos]=useState(INITIAL_PROMOS);
+  const[theme,setTheme]=useLS("ms_theme",THEMES[0].id);
   useEffect(()=>{
     (async()=>{
       setProductsLoading(true);
@@ -1201,6 +1317,7 @@ export default function App(){
       }catch(e){}
     })();
   },[setProducts,setPromos]);
+  useEffect(()=>{applyThemeVars(theme);},[theme]);
   const[adminAuth,setAdminAuth]=useLS("ms_admin",false);
   const[coupon,setCoupon]=useState(null);
   const[page,setPage]=useState("shop");
@@ -1210,6 +1327,11 @@ export default function App(){
   const[sucOrder,setSucOrder]=useState(null);
   const[toast,setToast]=useState(null);
   const showToast=(msg,icon="✦")=>setToast({msg,icon});
+  const updateTheme=(id)=>{
+    const t=THEMES.find(x=>x.id===id)||THEMES[0];
+    setTheme(t.id);
+    showToast(`Theme set to ${t.label}`,"🎨");
+  };
   const addToCart=(product,vi,qty=1,size="")=>{
     const v=product.variants[vi];
     const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
@@ -1249,7 +1371,7 @@ export default function App(){
 
   if(page==="adminlogin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={false} logoutAdmin={logout}/><AdminLogin onLogin={()=>{setAdminAuth(true);setPage("admin");}}/></>);
   if(page==="success"&&sucOrder)return(<><Navbar page="shop" setPage={setPage2} cartCount={0} openCart={()=>{}} isAdmin={adminAuth} logoutAdmin={logout}/><OrderSuc order={sucOrder} onContinue={()=>{setPage("shop");setSucOrder(null);}}/></>);
-  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos} onViewProduct={(p)=>{setPage("shop");setViewProd(p);}}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
+  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos} onViewProduct={(p)=>{setPage("shop");setViewProd(p);}} theme={theme} onThemeChange={updateTheme}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
   if(checkout)return(<><Navbar page="shop" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><Checkout cart={cart} coupon={coupon} onPlace={placeOrder} onBack={()=>{setCheckout(false);setCartOpen(true);}}/></>);
   return(
     <>
