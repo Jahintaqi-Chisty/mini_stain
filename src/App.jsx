@@ -504,6 +504,7 @@ function Navbar({page,setPage,cartCount,openCart,isAdmin,logoutAdmin,customer,lo
     <nav className="nav">
       <div className="nlogo" onClick={()=>setPage("shop")}>MiniStain</div>
       <div className="nright">
+        <button className={`nbtn ${page==="home"?"on":""}`} onClick={()=>setPage("home")}>Home</button>
         <button className={`nbtn ${page==="shop"?"on":""}`} onClick={()=>setPage("shop")}>Shop</button>
         <button className={`nbtn ${page==="account"?"on":""}`} onClick={()=>setPage("account")}>{customer?"Account":"Login"}</button>
         {customer&&<button className="nbtn" onClick={logoutCustomer}>Sign out</button>}
@@ -526,6 +527,7 @@ function ProdCard({product,onView,onAddToCart}){
   const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
   const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(product.originalPrice||base);
   const salePercent=Number(product.salePercent||0);
+  const calcPercent=salePercent>0?salePercent:(orig>base?Math.round(((orig-base)/orig)*100):0);
   const price=salePercent>0?Math.round(orig*(1-salePercent/100)):base;
   const hasSale=orig>price;
   const img=v?.images?.[0]||FALLBACK_IMG_600;
@@ -534,7 +536,7 @@ function ProdCard({product,onView,onAddToCart}){
       <div className="pimg">
         <img src={img} alt={product.name} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
         {tag&&<span className={`pbadge pb-${tag}`}>{tag}</span>}
-        {hasSale&&salePercent>0&&<span className="stag">−{salePercent}%</span>}
+        {hasSale&&calcPercent>0&&<span className="stag">−{calcPercent}%</span>}
       </div>
       <div className="pbody">
         <div className="pcat">{product.category}</div>
@@ -606,6 +608,7 @@ function ProdDetail({product,onBack,onAddToCart}){
   const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
   const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(product.originalPrice||base);
   const salePercent=Number(product.salePercent||0);
+  const calcPercent=salePercent>0?salePercent:(orig>base?Math.round(((orig-base)/orig)*100):0);
   const price=salePercent>0?Math.round(orig*(1-salePercent/100)):base;
   const hasSale=orig>price;
   const saved=hasSale?orig-price:0;
@@ -625,8 +628,8 @@ function ProdDetail({product,onBack,onAddToCart}){
           <div className="dprow">
             <span className="dprice">{fmt(price)}</span>
             {hasSale&&<span className="dpold">{fmt(orig)}</span>}
-            {hasSale&&salePercent>0&&<span className="dsave">−{salePercent}% OFF</span>}
-            {hasSale&&salePercent<=0&&saved>0&&<span className="dsave">Save {fmt(saved)}</span>}
+            {hasSale&&calcPercent>0&&<span className="dsave">−{calcPercent}% OFF</span>}
+            {hasSale&&calcPercent<=0&&saved>0&&<span className="dsave">Save {fmt(saved)}</span>}
           </div>
           <p className="ddesc">{product.description}</p>
           {attributeGroups.length>0?(
@@ -1163,32 +1166,49 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
   );
 }
 
-// Shop
-function Shop({products,promos,onView,onAddToCart,loading}){
-  const[filter,setFilter]=useState("All");
-  const[search,setSearch]=useState("");
-  const[showAll,setShowAll]=useState(false);
-  const cats=["All",...Array.from(new Set(products.map(p=>p.category).filter(Boolean))).sort()];
+function TrustBar(){
+  return(
+    <div className="trubar">
+      <div className="trus">
+        {[["💧","Waterproof"],["🛡️","316L Steel"],["🚚","Dhaka ৳80 · Others ৳120"],["💵","Cash on Delivery"],["↩️","Easy Returns"]]
+          .map(([ic,lb])=><div key={lb} className="tri"><span style={{fontSize:"1.1rem"}}>{ic}</span>{lb}</div>)}
+      </div>
+    </div>
+  );
+}
+
+function SiteFooter(){
+  return(
+    <footer className="footer">
+      <div className="ftgrid">
+        <div className="ftbrand">
+          <div style={{fontFamily:"var(--fd)",fontSize:"1.6rem",fontWeight:700,background:"linear-gradient(135deg,var(--g),var(--g2))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>MiniStain</div>
+          <p>Premium stainless steel jewelry crafted for everyday luxury. Hypoallergenic, waterproof, and designed to last a lifetime.</p>
+          <a className="fbbtn" href="https://www.facebook.com/profile.php?id=61586131658591" target="_blank" rel="noreferrer"><span>f</span> Follow on Facebook</a>
+        </div>
+        <div className="ftcol"><h4>Shop</h4>{["Rings","Necklaces","Bracelets","Earrings","New Arrivals"].map(l=><span key={l} className="ftlnk">{l}</span>)}</div>
+        <div className="ftcol"><h4>Info</h4>{["About Us","Size Guide","Care Instructions","Return Policy","FAQ"].map(l=><span key={l} className="ftlnk">{l}</span>)}</div>
+        <div className="ftcol"><h4>Contact</h4>
+          <a className="ftlnk" href="https://www.facebook.com/profile.php?id=61586131658591" target="_blank" rel="noreferrer">📘 Facebook: MiniStain</a>
+          <span className="ftlnk">💵 Cash on Delivery</span>
+          <span className="ftlnk">🚚 Dhaka: ৳80 · Others: ৳120</span>
+        </div>
+      </div>
+      <div className="ftbot"><span>© 2025 MiniStain. All rights reserved.</span><span>Stainless Steel Jewelry · Bangladesh</span></div>
+    </footer>
+  );
+}
+
+function HomePage({products,promos,onView,onAddToCart,loading,onShopAll,onCategory}){
   const active=promos.filter(p=>p.active);
-  const list=products.filter(p=>(filter==="All"||p.category===filter)&&(!search||p.name.toLowerCase().includes(search.toLowerCase())));
-  const preview=products.slice(0,8);
-  const pick=(arr,count)=>arr.slice(0,count);
+  const cats=Array.from(new Set(products.map(p=>p.category).filter(Boolean))).sort();
   const tagMatch=(p,keys)=>(p.tags||[]).some(t=>keys.includes(String(t).toLowerCase()));
-  const featured=products.filter(p=>tagMatch(p,["featured","feature","top","editor","highlight"]));
-  const bestSellers=products.filter(p=>tagMatch(p,["bestseller","best seller","popular","hot"]));
-  const newArrivals=products.filter(p=>tagMatch(p,["new","new arrival","new-arrival"]));
-  const onSale=products.filter(p=>Number(p.salePercent||0)>0);
-  const sections=[
-    {id:"featured",title:"Featured",accent:"Picks",items:pick(featured.length?featured:products,6)},
-    {id:"bestsellers",title:"Best",accent:"Sellers",items:pick(bestSellers.length?bestSellers:products,6)},
-    {id:"new",title:"New",accent:"Arrivals",items:pick(newArrivals.length?newArrivals:products,6)},
-    {id:"sale",title:"On",accent:"Sale",items:pick(onSale,6)},
-  ].filter(s=>s.items.length>0);
+  const featuredRaw=products.filter(p=>tagMatch(p,["featured","feature","top","editor","highlight"]));
+  const featured=(featuredRaw.length?featuredRaw:products).slice(0,6);
+  const newRaw=products.filter(p=>tagMatch(p,["new","new arrival","new-arrival"]));
+  const newItems=(newRaw.length?newRaw:[]).slice(0,6);
   const promoValue=p=>p.type==="percent"?`${p.value}% OFF`:p.type==="flat"?`${fmt(p.value)} OFF`:"Free Shipping";
   const promoMin=p=>p.minOrder?`Min order ${fmt(p.minOrder)}`:"No minimum";
-  const scrollTo=id=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth"});};
-  const showAllNow=()=>{setShowAll(true);setTimeout(()=>scrollTo("shopall"),0);};
-  const goCategory=c=>{setFilter(c);setSearch("");setShowAll(true);setTimeout(()=>scrollTo("shopall"),0);};
 
   return(
     <>
@@ -1199,17 +1219,17 @@ function Shop({products,promos,onView,onAddToCart,loading}){
           <h1>Wear <em>Luxury</em><br/>Every Day</h1>
           <p>Handcrafted 316L stainless steel jewelry — hypoallergenic, waterproof, and built to last a lifetime.</p>
           <div className="hacts">
-            <button className="bg" onClick={()=>{const el=document.getElementById("collections")||document.getElementById("shopall");if(el)el.scrollIntoView({behavior:"smooth"});}}>Shop Now</button>
+            <button className="bg" onClick={onShopAll}>Shop All</button>
             <a className="bgh" href="https://www.facebook.com/profile.php?id=61586131658591" target="_blank" rel="noreferrer">📘 MiniStain Facebook</a>
           </div>
         </div>
       </div>
 
       {active.length>0&&(
-        <div className="sec" id="promos">
+        <div className="sec">
           <div className="sch">
             <h2 className="stitle">Active <em>Promotions</em></h2>
-            <button className="bgh bsm" onClick={showAllNow}>Shop All</button>
+            <button className="bgh bsm" onClick={onShopAll}>Shop All</button>
           </div>
           <div className="promogrid">
             {active.map(p=>(
@@ -1224,40 +1244,50 @@ function Shop({products,promos,onView,onAddToCart,loading}){
         </div>
       )}
 
-      {sections.map((s,idx)=>(
-        <div key={s.id} className="sec" id={idx===0?"collections":undefined}>
-          <div className="sch">
-            <h2 className="stitle">{s.title} <em>{s.accent}</em></h2>
-            <button className="bgh bsm" onClick={showAllNow}>Shop All</button>
-          </div>
-          {loading&&products.length===0?(
-            <div className="pgrid">
-              {Array.from({length:6}).map((_,i)=>(
-                <div key={i} className="skcard">
-                  <div className="skimg skpulse"/>
-                  <div className="skbody">
-                    <div className="skline sm skpulse"/>
-                    <div className="skline lg skpulse"/>
-                    <div className="skline md skpulse"/>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ):(
-            <div className="pgrid">{s.items.map(p=><ProdCard key={`${s.id}-${p.id}`} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
-          )}
+      <div className="sec">
+        <div className="sch">
+          <h2 className="stitle">Featured <em>Collection</em></h2>
+          <button className="bgh bsm" onClick={onShopAll}>Shop All</button>
         </div>
-      ))}
+        {loading&&products.length===0?(
+          <div className="pgrid">
+            {Array.from({length:6}).map((_,i)=>(
+              <div key={i} className="skcard">
+                <div className="skimg skpulse"/>
+                <div className="skbody">
+                  <div className="skline sm skpulse"/>
+                  <div className="skline lg skpulse"/>
+                  <div className="skline md skpulse"/>
+                </div>
+              </div>
+            ))}
+          </div>
+        ):featured.length===0?(
+          <div style={{textAlign:"center",padding:"40px 0",color:"var(--m)"}}>No products yet</div>
+        ):(
+          <div className="pgrid">{featured.map(p=><ProdCard key={`feat-${p.id}`} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
+        )}
+      </div>
 
-      {cats.length>1&&(
+      {newItems.length>0&&(
+        <div className="sec">
+          <div className="sch">
+            <h2 className="stitle">New <em>Arrivals</em></h2>
+            <button className="bgh bsm" onClick={onShopAll}>Shop All</button>
+          </div>
+          <div className="pgrid">{newItems.map(p=><ProdCard key={`new-${p.id}`} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
+        </div>
+      )}
+
+      {cats.length>0&&(
         <div className="sec">
           <div className="sch">
             <h2 className="stitle">Shop by <em>Category</em></h2>
-            <button className="bgh bsm" onClick={showAllNow}>Browse All</button>
+            <button className="bgh bsm" onClick={onShopAll}>Browse All</button>
           </div>
           <div className="catgrid">
-            {cats.filter(c=>c!=="All").slice(0,10).map(c=>(
-              <button key={c} type="button" className="catcard" onClick={()=>goCategory(c)}>
+            {cats.slice(0,10).map(c=>(
+              <button key={c} type="button" className="catcard" onClick={()=>onCategory(c)}>
                 <div className="catname">{c}</div>
                 <div className="catcount">{products.filter(p=>p.category===c).length} items</div>
                 <div className="catcta">Shop →</div>
@@ -1267,14 +1297,27 @@ function Shop({products,promos,onView,onAddToCart,loading}){
         </div>
       )}
 
-      <div className="sec" id="shopall">
+      <TrustBar/>
+      <SiteFooter/>
+    </>
+  );
+}
+
+function ShopPage({products,promos,onView,onAddToCart,loading,filter,setFilter}){
+  const[search,setSearch]=useState("");
+  const cats=["All",...Array.from(new Set(products.map(p=>p.category).filter(Boolean))).sort()];
+  const active=promos.filter(p=>p.active);
+  const list=products.filter(p=>(filter==="All"||p.category===filter)&&(!search||p.name.toLowerCase().includes(search.toLowerCase())));
+  const promoValue=p=>p.type==="percent"?`${p.value}% OFF`:p.type==="flat"?`${fmt(p.value)} OFF`:"Free Shipping";
+  return(
+    <>
+      {active.length>0&&<div className="pb">🏷️ {active.map(p=>`${p.code} ${promoValue(p)}`).join("  ·  ")}  — Use codes at checkout!</div>}
+      <div className="sec">
         <div className="sch">
-          <h2 className="stitle">Shop <em>All</em></h2>
-          {showAll
-            ?<div className="sw"><span className="sico">🔍</span><input placeholder="Search jewelry..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
-            :<button className="bg bsm" onClick={showAllNow}>View All Products</button>}
+          <h2 className="stitle">Our <em>Collection</em></h2>
+          <div className="sw"><span className="sico">🔍</span><input placeholder="Search jewelry..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
         </div>
-        {showAll&&<div className="ftabs">{cats.map(c=><button key={c} className={`ftab ${filter===c?"on":""}`} onClick={()=>setFilter(c)}>{c}</button>)}</div>}
+        <div className="ftabs">{cats.map(c=><button key={c} className={`ftab ${filter===c?"on":""}`} onClick={()=>setFilter(c)}>{c}</button>)}</div>
         {loading&&products.length===0?(
           <div className="pgrid">
             {Array.from({length:8}).map((_,i)=>(
@@ -1288,38 +1331,14 @@ function Shop({products,promos,onView,onAddToCart,loading}){
               </div>
             ))}
           </div>
-        ):showAll?(
-          list.length===0
-            ?<div style={{textAlign:"center",padding:"60px 0",color:"var(--m)"}}>No products found</div>
-            :<div className="pgrid">{list.map(p=><ProdCard key={p.id} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
-        ):preview.length===0?(
+        ):list.length===0?(
           <div style={{textAlign:"center",padding:"60px 0",color:"var(--m)"}}>No products found</div>
         ):(
-          <>
-            <div className="pgrid">{preview.map(p=><ProdCard key={p.id} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
-            <div className="secta"><button className="bg" onClick={showAllNow}>View All Products</button></div>
-          </>
+          <div className="pgrid">{list.map(p=><ProdCard key={p.id} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
         )}
       </div>
-
-      <div className="trubar"><div className="trus">{[["💧","Waterproof"],["🛡️","316L Steel"],["🚚","Dhaka ৳80 · Others ৳120"],["💵","Cash on Delivery"],["↩️","Easy Returns"]].map(([ic,lb])=><div key={lb} className="tri"><span style={{fontSize:"1.1rem"}}>{ic}</span>{lb}</div>)}</div></div>
-      <footer className="footer">
-        <div className="ftgrid">
-          <div className="ftbrand">
-            <div style={{fontFamily:"var(--fd)",fontSize:"1.6rem",fontWeight:700,background:"linear-gradient(135deg,var(--g),var(--g2))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>MiniStain</div>
-            <p>Premium stainless steel jewelry crafted for everyday luxury. Hypoallergenic, waterproof, and designed to last a lifetime.</p>
-            <a className="fbbtn" href="https://www.facebook.com/profile.php?id=61586131658591" target="_blank" rel="noreferrer"><span>f</span> Follow on Facebook</a>
-          </div>
-          <div className="ftcol"><h4>Shop</h4>{["Rings","Necklaces","Bracelets","Earrings","New Arrivals"].map(l=><span key={l} className="ftlnk">{l}</span>)}</div>
-          <div className="ftcol"><h4>Info</h4>{["About Us","Size Guide","Care Instructions","Return Policy","FAQ"].map(l=><span key={l} className="ftlnk">{l}</span>)}</div>
-          <div className="ftcol"><h4>Contact</h4>
-            <a className="ftlnk" href="https://www.facebook.com/profile.php?id=61586131658591" target="_blank" rel="noreferrer">📘 Facebook: MiniStain</a>
-            <span className="ftlnk">💵 Cash on Delivery</span>
-            <span className="ftlnk">🚚 Dhaka: ৳80 · Others: ৳120</span>
-          </div>
-        </div>
-        <div className="ftbot"><span>© 2025 MiniStain. All rights reserved.</span><span>Stainless Steel Jewelry · Bangladesh</span></div>
-      </footer>
+      <TrustBar/>
+      <SiteFooter/>
     </>
   );
 }
@@ -1384,7 +1403,8 @@ export default function App(){
   },[products]);
   const[adminAuth,setAdminAuth]=useLS("ms_admin",false);
   const[coupon,setCoupon]=useState(null);
-  const[page,setPage]=useState("shop");
+  const[page,setPage]=useState("home");
+  const[shopFilter,setShopFilter]=useState("All");
   const[viewProd,setViewProd]=useState(null);
   const[cartOpen,setCartOpen]=useState(false);
   const[checkout,setCheckout]=useState(false);
@@ -1453,12 +1473,14 @@ export default function App(){
     }
   };
   const setPage2=p=>{if(p==="admin"&&!adminAuth){setPage("adminlogin");return;}setPage(p);setViewProd(null);updateProductInUrl(null,{replace:true});};
-  const logout=()=>{setAdminAuth(false);setPage("shop");};
+  const logout=()=>{setAdminAuth(false);setPage("home");};
+  const goShopAll=()=>{setShopFilter("All");setPage("shop");setViewProd(null);updateProductInUrl(null,{replace:true});};
+  const goCategory=c=>{setShopFilter(c);setPage("shop");setViewProd(null);updateProductInUrl(null,{replace:true});};
   const logoutCustomer=async()=>{
     try{await authJSON("/api/auth/logout",{method:"POST"});}catch(e){}
     setCustomer(null);
     showToast("Logged out","👤");
-    if(page==="account") setPage("shop");
+    if(page==="account") setPage("home");
   };
 
   if(page==="adminlogin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={false} logoutAdmin={logout} customer={customer} logoutCustomer={logoutCustomer}/><AdminLogin onLogin={()=>{setAdminAuth(true);setPage("admin");}}/></>);
@@ -1469,7 +1491,12 @@ export default function App(){
   return(
     <>
       <Navbar page={page} setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout} customer={customer} logoutCustomer={logoutCustomer}/>
-      {viewProd?<ProdDetail product={viewProd} onBack={()=>closeProduct()} onAddToCart={addToCart}/>:<Shop products={products} promos={promos} onView={openProduct} onAddToCart={addToCart} loading={productsLoading}/>}
+      {viewProd
+        ?<ProdDetail product={viewProd} onBack={()=>closeProduct()} onAddToCart={addToCart}/>
+        :page==="home"
+          ?<HomePage products={products} promos={promos} onView={openProduct} onAddToCart={addToCart} loading={productsLoading} onShopAll={goShopAll} onCategory={goCategory}/>
+          :<ShopPage products={products} promos={promos} onView={openProduct} onAddToCart={addToCart} loading={productsLoading} filter={shopFilter} setFilter={setShopFilter}/>
+      }
       {cartOpen&&<CartSide cart={cart} onClose={()=>setCartOpen(false)} updateQty={updateQty} removeItem={removeItem} onCheckout={()=>{setCartOpen(false);setCheckout(true);}} coupon={coupon} setCoupon={setCoupon} promos={promos}/>}
       {toast&&<Toast {...toast} onClose={()=>setToast(null)}/>
       }

@@ -82,6 +82,8 @@ export default async function handler(req, res) {
   const db = process.env.ODOO_DB;
   const user = process.env.ODOO_USER;
   const apiKey = process.env.ODOO_API_KEY;
+  const pricelistId = Number(process.env.ODOO_PRICELIST_ID || 0);
+  const productContext = pricelistId ? { pricelist: pricelistId } : undefined;
 
   try {
     const uid = await odooLogin(baseUrl, db, user, apiKey);
@@ -133,7 +135,7 @@ export default async function handler(req, res) {
       "product.product",
       "search_read",
       [domain],
-      { fields }
+      { fields, context: productContext }
     );
 
     const nowIso = new Date().toISOString();
@@ -271,12 +273,13 @@ export default async function handler(req, res) {
       const category = Array.isArray(tmpl.categ_id) ? tmpl.categ_id[1] : tmpl.categ_id || "Uncategorized";
 
       if (!productMap.has(templateId)) {
+        const tmplListPrice = typeof tmpl.list_price === "number" ? tmpl.list_price : 0;
         productMap.set(templateId, {
           id: templateId || r.id,
           odooTemplateId: templateId || null,
           name: tmpl.name || r.display_name || "",
-          price: Number(tmpl.list_price || r.lst_price || r.list_price || 0),
-          originalPrice: Number(tmpl.list_price || r.lst_price || r.list_price || 0),
+          price: Number(r.lst_price || r.list_price || tmplListPrice || 0),
+          originalPrice: Number(r.list_price || tmplListPrice || r.lst_price || 0),
           category,
           description: tmpl.description_sale || "",
           variants: [],
@@ -321,6 +324,13 @@ export default async function handler(req, res) {
             ? r.list_price
             : tmpl.list_price || 0
       );
+      const variantOriginal = Number(
+        typeof r.list_price === "number"
+          ? r.list_price
+          : typeof tmpl.list_price === "number"
+            ? tmpl.list_price
+            : variantPrice || 0
+      );
       const stockVal =
         typeof r.qty_available === "number"
           ? r.qty_available
@@ -334,7 +344,7 @@ export default async function handler(req, res) {
         images,
         odooProductId: r.id,
         price: variantPrice,
-        originalPrice: variantPrice,
+        originalPrice: variantOriginal,
         attributes: attrs,
       });
     });
