@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
+import "./App.css";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ADMIN_CREDS = { username: "admin", password: "ministain2025" };
@@ -115,323 +116,6 @@ function updateProductInUrl(productId, { replace = false } = {}) {
   else window.history.pushState({}, "", url.toString());
 }
 
-// ─── CSS ──────────────────────────────────────────────────────────────────────
-const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{--bg:#F6F1E9;--s:#FFF8F0;--s2:#F1E6DA;--s3:#E9DCCE;--b:rgba(34,26,20,.08);--b2:rgba(34,26,20,.14);--g:#B17646;--g2:#D9A072;--t:#2C2620;--m:#7A6E66;--m2:#5F554E;--red:#C55C5C;--grn:#3B9F7A;--blu:#4B7DA6;--g-soft:rgba(177,118,70,.08);--g-soft2:rgba(177,118,70,.22);--g-shadow:rgba(177,118,70,.32);--r:14px;--r2:22px;--fd:'Fraunces',serif;--fb:'Plus Jakarta Sans',sans-serif;--sh:0 18px 48px rgba(34,26,20,.18);} 
-body{font-family:var(--fb);background:var(--bg);color:var(--t);-webkit-font-smoothing:antialiased;}
-button{cursor:pointer;border:none;font-family:var(--fb);} 
-input,select,textarea{font-family:var(--fb);} 
-a{text-decoration:none;color:inherit;} 
-img{display:block;} 
-::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--s);}::-webkit-scrollbar-thumb{background:var(--b2);} 
-.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,.96);backdrop-filter:blur(24px);border-bottom:1px solid var(--b);height:64px;padding:0 5%;display:flex;align-items:center;justify-content:space-between;} 
-.nlogo{font-family:var(--fd);font-size:1.7rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,var(--g),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;cursor:pointer;} 
-.nright{display:flex;align-items:center;gap:8px;} 
-.nbtn{padding:8px 16px;border-radius:50px;font-size:.82rem;font-weight:500;background:none;color:var(--m);transition:color .2s;letter-spacing:.04em;} 
-.nbtn:hover,.nbtn.on{color:var(--g);} 
-.ncart{position:relative;display:flex;align-items:center;gap:8px;padding:8px 18px;border-radius:50px;background:var(--s2);border:1px solid var(--b);color:var(--t);font-size:.82rem;font-weight:500;transition:all .2s;} 
-.ncart:hover{border-color:var(--g);color:var(--g);} 
-.nbadge{position:absolute;top:-5px;right:-5px;background:var(--g);color:var(--bg);font-size:.6rem;font-weight:700;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;} 
-.pb{background:linear-gradient(135deg,var(--g),var(--g2));color:var(--bg);padding:10px;text-align:center;font-size:.78rem;font-weight:600;letter-spacing:.05em;} 
-.hero{min-height:88vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:80px 5%;position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 60% at 50% 50%,var(--s2) 0%,var(--bg) 100%);} 
-.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 40% at 50% 30%,var(--g-soft2) 0%,transparent 70%);} 
-.hero-in{position:relative;z-index:1;max-width:720px;} 
-.hpill{display:inline-flex;align-items:center;gap:8px;background:var(--g-soft);border:1px solid var(--g-soft2);border-radius:50px;padding:6px 18px;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--g);margin-bottom:28px;} 
-.hero h1{font-family:var(--fd);font-size:clamp(2.8rem,6.5vw,5.5rem);font-weight:700;line-height:1.08;margin-bottom:22px;} 
-.hero h1 em{font-style:italic;color:var(--g);} 
-.hero p{font-size:1.05rem;color:var(--m);line-height:1.75;margin-bottom:36px;max-width:520px;margin-left:auto;margin-right:auto;} 
-.hacts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;} 
-.bg{background:linear-gradient(135deg,var(--g),var(--g2));color:var(--bg);font-weight:700;font-size:.875rem;padding:13px 30px;border-radius:50px;letter-spacing:.04em;transition:all .3s;} 
-.bg:hover{transform:translateY(-2px);box-shadow:0 12px 30px var(--g-shadow);} 
-.bgh{background:transparent;color:var(--t);font-weight:500;font-size:.875rem;padding:13px 30px;border-radius:50px;letter-spacing:.04em;border:1px solid var(--b2);transition:all .2s;} 
-.bgh:hover{border-color:var(--g);color:var(--g);} 
-.bsm{padding:8px 18px;font-size:.78rem;border-radius:8px;} 
-.bdanger{background:rgba(217,91,91,.12);border:1px solid rgba(217,91,91,.3);color:var(--red);font-size:.78rem;padding:7px 14px;border-radius:7px;font-weight:500;transition:all .2s;} 
-.bdanger:hover{background:rgba(217,91,91,.25);} 
-.bsuc{background:rgba(90,184,138,.12);border:1px solid rgba(90,184,138,.3);color:var(--grn);font-size:.78rem;padding:7px 14px;border-radius:7px;font-weight:500;transition:all .2s;} 
-.bsm2{background:var(--s2);border:1px solid var(--b);color:var(--t);font-size:.78rem;padding:7px 14px;border-radius:7px;font-weight:500;transition:all .2s;} 
-.bsm2:hover{border-color:var(--g);color:var(--g);} 
-.sec{padding:72px 5%;} 
-.sch{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:14px;} 
-.stitle{font-family:var(--fd);font-size:2.1rem;font-weight:700;} 
-.stitle em{color:var(--g);font-style:italic;} 
-.ftabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;} 
-.ftab{padding:7px 18px;border-radius:50px;font-size:.78rem;font-weight:500;background:var(--s2);border:1px solid var(--b);color:var(--m);transition:all .2s;} 
-.ftab.on{background:var(--g);border-color:var(--g);color:var(--bg);} 
-.ftab:hover:not(.on){border-color:var(--b2);color:var(--t);} 
-.sw{position:relative;} 
-.sw input{padding:9px 14px 9px 36px;border-radius:50px;background:var(--s2);border:1px solid var(--b);color:var(--t);font-size:.82rem;width:200px;outline:none;transition:border-color .2s;} 
-.sw input:focus{border-color:var(--g);} 
-.sw input::placeholder{color:var(--m);} 
-.sico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:.85rem;color:var(--m);} 
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:20px;} 
-.skcard{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);overflow:hidden;} 
-.skimg{aspect-ratio:1;background:var(--s2);} 
-.skbody{padding:16px;display:flex;flex-direction:column;gap:10px;} 
-.skline{height:10px;border-radius:6px;background:var(--s2);} 
-.skline.sm{width:40%;} 
-.skline.md{width:70%;} 
-.skline.lg{width:90%;} 
-.skpulse{animation:pulse 1.2s ease-in-out infinite;} 
-@keyframes pulse{0%{opacity:.6}50%{opacity:1}100%{opacity:.6}} 
-.pcard{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);overflow:hidden;cursor:pointer;transition:all .3s;} 
-.pcard:hover{transform:translateY(-5px);border-color:var(--g-soft2);box-shadow:0 24px 64px rgba(0,0,0,.45);} 
-.pimg{aspect-ratio:1;overflow:hidden;position:relative;} 
-.pimg img{width:100%;height:100%;object-fit:cover;transition:transform .5s;} 
-.pcard:hover .pimg img{transform:scale(1.07);} 
-.pbadge{position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:4px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;} 
-.pb-sale{background:#D95B5B;color:#fff;} 
-.pb-new{background:var(--blu);color:#fff;} 
-.pb-bestseller{background:var(--g);color:var(--bg);} 
-.pb-featured{background:var(--grn);color:#fff;} 
-.stag{position:absolute;top:10px;right:10px;background:linear-gradient(135deg,#D95B5B,#B83C3C);color:#fff;font-size:.65rem;font-weight:800;padding:3px 9px;border-radius:50px;} 
-.pbody{padding:16px;} 
-.pcat{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--blu);margin-bottom:5px;} 
-.pname{font-family:var(--fd);font-size:1.1rem;margin-bottom:10px;line-height:1.3;} 
-.pprice{display:flex;align-items:center;gap:8px;margin-bottom:12px;} 
-.pnow{font-size:1.05rem;font-weight:700;color:var(--g);} 
-.pold{font-size:.82rem;text-decoration:line-through;color:var(--m2);} 
-.pvars{display:flex;gap:5px;margin-bottom:12px;} 
-.vd{width:15px;height:15px;border-radius:50%;border:2px solid transparent;transition:border-color .2s;cursor:pointer;} 
-.vd:hover,.vd.on{border-color:var(--g);} 
-.qmini{display:flex;align-items:center;gap:6px;margin-bottom:10px;} 
-.qmini label{font-size:.72rem;color:var(--m);font-weight:500;} 
-.qmc{display:flex;align-items:center;border:1px solid var(--b);border-radius:7px;overflow:hidden;} 
-.qmb{width:28px;height:28px;background:var(--s2);color:var(--t);font-size:.95rem;} 
-.qmb:hover{background:var(--s3);} 
-.qmv{width:34px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:600;} 
-.atcbtn{width:100%;padding:11px;border-radius:8px;background:var(--s2);border:1px solid var(--b);color:var(--t);font-size:.82rem;font-weight:600;transition:all .2s;} 
-.atcbtn:hover{background:var(--g);border-color:var(--g);color:var(--bg);} 
-.dw{max-width:1160px;margin:0 auto;padding:52px 5%;} 
-.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:56px;} 
-@media(max-width:800px){.dgrid{grid-template-columns:1fr;}} 
-.mib{aspect-ratio:1;border-radius:var(--r2);overflow:hidden;background:var(--s);border:1px solid var(--b);position:relative;cursor:zoom-in;user-select:none;} 
-.mib img{width:100%;height:100%;object-fit:cover;pointer-events:none;} 
-.ztip{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.55);color:var(--m);font-size:.68rem;padding:4px 10px;border-radius:6px;backdrop-filter:blur(4px);} 
-.thumbs{display:flex;gap:9px;margin-top:12px;} 
-.th{width:68px;aspect-ratio:1;border-radius:8px;overflow:hidden;border:2px solid transparent;cursor:pointer;transition:border-color .2s;flex-shrink:0;} 
-.th.on{border-color:var(--g);} 
-.th img{width:100%;height:100%;object-fit:cover;} 
-.dinfo{display:flex;flex-direction:column;gap:18px;} 
-.dcat{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--blu);} 
-.dname{font-family:var(--fd);font-size:2.3rem;line-height:1.15;font-weight:700;} 
-.dprow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;} 
-.dprice{font-size:1.9rem;font-weight:700;color:var(--g);} 
-.dpold{font-size:1rem;text-decoration:line-through;color:var(--m);} 
-.dsave{background:rgba(90,184,138,.12);color:var(--grn);border:1px solid rgba(90,184,138,.25);border-radius:5px;font-size:.72rem;font-weight:700;padding:3px 10px;} 
-.ddesc{color:var(--m);line-height:1.8;font-size:.92rem;} 
-.dlabel{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--m);margin-bottom:9px;} 
-.vbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;} 
-.vbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:7px 14px;min-height:36px;border-radius:8px;background:var(--s2);border:1px solid var(--b);color:var(--t);font-size:.82rem;font-weight:500;line-height:1.15;transition:all .2s;max-width:100%;} 
-.vbtn.on{border-color:var(--g);color:var(--g);background:var(--g-soft);} 
-.vdlg{width:13px;height:13px;border-radius:50%;border:1px solid rgba(255,255,255,.2);} 
-.sizes{display:flex;gap:7px;flex-wrap:wrap;align-items:center;} 
-.sbtn{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:42px;padding:0 12px;border-radius:8px;background:var(--s2);border:1px solid var(--b);color:var(--t);font-size:.82rem;font-weight:500;line-height:1;white-space:nowrap;transition:all .2s;} 
-.sbtn.on{border-color:var(--g);color:var(--g);background:var(--g-soft);} 
-.qrow{display:flex;align-items:center;gap:14px;} 
-.qctrl{display:flex;align-items:center;border:1px solid var(--b);border-radius:9px;overflow:hidden;} 
-.qb{width:42px;height:42px;background:var(--s2);color:var(--t);font-size:1.1rem;transition:background .2s;} 
-.qb:hover{background:var(--s3);} 
-.qv{width:52px;height:42px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;} 
-.daddbtn{flex:1;padding:14px;border-radius:10px;background:linear-gradient(135deg,var(--g),var(--g2));color:var(--bg);font-weight:700;font-size:.9rem;transition:all .3s;} 
-.daddbtn:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--g-shadow);} 
-.delinf{display:flex;align-items:flex-start;gap:10px;background:rgba(91,141,217,.07);border:1px solid rgba(91,141,217,.2);border-radius:9px;padding:12px 16px;font-size:.82rem;color:var(--m);} 
-.delinf strong{color:var(--t);} 
-.feats{display:grid;grid-template-columns:1fr 1fr;gap:9px;} 
-.feat{display:flex;align-items:center;gap:9px;background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:10px;} 
-.fic{font-size:1.1rem;} 
-.ftx{font-size:.77rem;color:var(--m);} 
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:200;animation:fi .2s forwards;} 
-@keyframes fi{from{opacity:0;}to{opacity:1;}} 
-.cside{position:fixed;top:0;right:0;bottom:0;width:430px;max-width:100vw;background:var(--s);border-left:1px solid var(--b);z-index:201;display:flex;flex-direction:column;animation:si .3s forwards;} 
-@keyframes si{from{transform:translateX(110%);}to{transform:translateX(0);}} 
-.chd{padding:22px 22px 18px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;} 
-.ctitle{font-family:var(--fd);font-size:1.45rem;} 
-.xbtn{width:34px;height:34px;border-radius:50%;background:var(--s2);border:1px solid var(--b);color:var(--t);display:flex;align-items:center;justify-content:center;font-size:1rem;} 
-.cbody{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;} 
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:var(--m);} 
-.eico{font-size:3.2rem;} 
-.ci{display:flex;gap:12px;background:var(--s2);border:1px solid var(--b);border-radius:var(--r);padding:13px;} 
-.ciimg{width:68px;height:68px;border-radius:7px;object-fit:cover;flex-shrink:0;} 
-.ciinf{flex:1;min-width:0;} 
-.cinm{font-size:.85rem;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} 
-.civ{font-size:.73rem;color:var(--m);margin-bottom:7px;} 
-.cibot{display:flex;align-items:center;justify-content:space-between;} 
-.cip{color:var(--g);font-weight:700;font-size:.9rem;} 
-.ciq{display:flex;align-items:center;gap:6px;} 
-.ciqb{width:26px;height:26px;border-radius:6px;background:var(--s3);border:1px solid var(--b);color:var(--t);font-size:.85rem;} 
-.cirm{background:none;color:var(--red);margin-left:4px;font-size:1rem;} 
-.cft{padding:18px;border-top:1px solid var(--b);} 
-.crow{display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:7px;} 
-.crow.big{font-weight:700;font-size:1rem;color:var(--g);padding-top:7px;border-top:1px solid var(--b);} 
-.cprow{display:flex;gap:8px;margin-bottom:10px;} 
-.cpinp{flex:1;padding:9px 12px;border-radius:8px;background:var(--s2);border:1px solid var(--b);color:var(--t);font-size:.82rem;outline:none;transition:border-color .2s;} 
-.cpinp:focus{border-color:var(--g);} 
-.cpinp::placeholder{color:var(--m);} 
-.capplied{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(90,184,138,.08);border:1px solid rgba(90,184,138,.25);border-radius:8px;font-size:.78rem;color:var(--grn);margin-bottom:10px;} 
-.cobtn{padding:9px 16px;border-radius:8px;background:var(--g);color:var(--bg);font-size:.78rem;font-weight:700;} 
-.copage{max-width:960px;margin:0 auto;padding:52px 5%;} 
-.cogrid{display:grid;grid-template-columns:1.3fr 1fr;gap:36px;} 
-@media(max-width:780px){.cogrid{grid-template-columns:1fr;}} 
-.cocard{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);padding:26px;margin-bottom:20px;} 
-.coctitle{font-family:var(--fd);font-size:1.3rem;margin-bottom:20px;} 
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;} 
-.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;} 
-.fl{font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--m);} 
-.fi{padding:10px 13px;border-radius:8px;background:var(--s2);border:1px solid var(--b);color:var(--t);font-size:.875rem;outline:none;transition:border-color .2s;width:100%;} 
-.fi:focus{border-color:var(--g);} 
-.fi::placeholder{color:var(--m);opacity:.5;} 
-.fi.err{border-color:var(--red);} 
-.etxt{font-size:.7rem;color:var(--red);} 
-.payopt{display:flex;align-items:center;gap:14px;padding:14px;border:2px solid var(--b);border-radius:10px;background:var(--s2);} 
-.payopt.on{border-color:var(--g);background:var(--g-soft);} 
-.rc{width:19px;height:19px;border-radius:50%;border:2px solid var(--b);display:flex;align-items:center;justify-content:center;flex-shrink:0;} 
-.payopt.on .rc{border-color:var(--g);} 
-.rd{width:9px;height:9px;border-radius:50%;background:var(--g);} 
-.sumbox{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);padding:22px;position:sticky;top:80px;} 
-.sumtitle{font-family:var(--fd);font-size:1.2rem;margin-bottom:16px;} 
-.si_{display:flex;gap:11px;margin-bottom:12px;} 
-.siimg{width:52px;height:52px;border-radius:7px;object-fit:cover;border:1px solid var(--b);flex-shrink:0;} 
-.siinf{flex:1;} 
-.sinm{font-size:.82rem;font-weight:500;margin-bottom:2px;} 
-.siv{font-size:.72rem;color:var(--m);} 
-.sip{font-size:.82rem;color:var(--g);font-weight:600;white-space:nowrap;} 
-hr.dv{border:none;border-top:1px solid var(--b);margin:13px 0;} 
-.srow{display:flex;justify-content:space-between;font-size:.875rem;margin-bottom:7px;} 
-.srow.tot{font-weight:700;font-size:1rem;color:var(--g);} 
-.codbox{display:flex;align-items:center;gap:9px;padding:10px 14px;background:rgba(90,184,138,.07);border:1px solid rgba(90,184,138,.22);border-radius:8px;margin-top:12px;font-size:.78rem;color:var(--grn);} 
-.pbtn{width:100%;padding:14px;margin-top:16px;border-radius:10px;background:linear-gradient(135deg,var(--g),var(--g2));color:var(--bg);font-weight:700;font-size:.95rem;transition:all .3s;} 
-.pbtn:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--g-shadow);} 
-.sucpage{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center;padding:40px 5%;} 
-.sucico{font-size:5rem;margin-bottom:22px;} 
-.suctitle{font-family:var(--fd);font-size:2.5rem;margin-bottom:10px;} 
-.sucsub{color:var(--m);max-width:500px;line-height:1.75;margin-bottom:28px;} 
-.oidbox{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:14px 28px;font-family:monospace;font-size:1.05rem;color:var(--g);margin-bottom:28px;} 
-.lgpage{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 50% at 50% 40%,var(--g-soft) 0%,transparent 70%);} 
-.lgcard{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);padding:44px;width:100%;max-width:420px;margin:20px;} 
-.lglogo{font-family:var(--fd);font-size:2rem;font-weight:700;color:var(--g);text-align:center;margin-bottom:6px;} 
-.lgsub{text-align:center;color:var(--m);font-size:.82rem;margin-bottom:32px;} 
-.lgerr{background:rgba(217,91,91,.1);border:1px solid rgba(217,91,91,.3);color:var(--red);border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:16px;text-align:center;} 
-.lgbtn{width:100%;padding:13px;border-radius:10px;background:linear-gradient(135deg,var(--g),var(--g2));color:var(--bg);font-weight:700;font-size:.9rem;margin-top:8px;transition:all .3s;} 
-.lgbtn:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--g-shadow);} 
-.lgft{text-align:center;color:var(--m);font-size:.75rem;margin-top:20px;} 
-.awrap{display:flex;min-height:calc(100vh - 64px);} 
-.aside{width:228px;background:var(--s);border-right:1px solid var(--b);padding:16px 0;flex-shrink:0;} 
-.aslogo{padding:0 20px 16px;font-family:var(--fd);font-size:1rem;color:var(--g);border-bottom:1px solid var(--b);margin-bottom:8px;} 
-.aitm{width:100%;padding:11px 20px;display:flex;align-items:center;gap:11px;font-size:.82rem;font-weight:500;color:var(--m);background:none;border:none;text-align:left;transition:all .2s;border-left:3px solid transparent;} 
-.aitm:hover,.aitm.on{color:var(--g);background:var(--g-soft);border-left-color:var(--g);} 
-.asub{margin:0 12px 12px 12px;padding:10px 8px 6px;border-left:2px solid var(--b);display:flex;flex-direction:column;gap:6px;} 
-.asubtitle{font-size:.62rem;text-transform:uppercase;letter-spacing:.16em;color:var(--m);margin:0 6px 4px;} 
-.asubitm{padding:8px 10px;border-radius:8px;font-size:.78rem;font-weight:500;color:var(--m);background:var(--s2);border:1px solid var(--b);text-align:left;transition:all .2s;} 
-.asubitm:hover{border-color:var(--b2);color:var(--t);} 
-.asubitm.on{border-color:var(--g);color:var(--g);background:var(--g-soft);} 
-.amain{flex:1;padding:28px;overflow-y:auto;} 
-.ahd{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;} 
-.atitle{font-family:var(--fd);font-size:1.7rem;} 
-.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:14px;margin-bottom:28px;} 
-.stc{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);padding:20px;text-align:center;} 
-.stv{font-family:var(--fd);font-size:2rem;font-weight:700;color:var(--g);} 
-.stl{font-size:.72rem;color:var(--m);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;} 
-.themegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;} 
-.themeopt{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;text-align:left;transition:all .2s;} 
-.themeopt:hover{border-color:var(--b2);transform:translateY(-1px);} 
-.themeopt.on{border-color:var(--g);box-shadow:0 12px 30px rgba(0,0,0,.4);} 
-.themebar{height:10px;border-radius:999px;} 
-.themelabel{font-size:.85rem;font-weight:600;} 
-.themedesc{font-size:.72rem;color:var(--m);line-height:1.4;} 
-.themeswatch{display:flex;gap:6px;} 
-.themeswatch span{width:18px;height:18px;border-radius:50%;border:1px solid var(--b);} 
-.tcard{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);overflow:hidden;} 
-.tchd{padding:14px 18px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;} 
-.tchtitle{font-weight:600;font-size:.9rem;} 
-table.t{width:100%;border-collapse:collapse;font-size:.82rem;} 
-table.t th{text-align:left;padding:11px 15px;color:var(--m);font-weight:500;font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--b);} 
-table.t td{padding:12px 15px;border-bottom:1px solid var(--b);vertical-align:middle;} 
-table.t tr:last-child td{border-bottom:none;} 
-table.t tr:hover td{background:var(--s2);} 
-.badge{display:inline-block;padding:3px 9px;border-radius:50px;font-size:.68rem;font-weight:700;} 
-.bpend{background:var(--g-soft2);color:var(--g);} 
-.bproc{background:rgba(91,141,217,.12);color:var(--blu);} 
-.bdel{background:rgba(90,184,138,.12);color:var(--grn);} 
-.bcan{background:rgba(217,91,91,.12);color:var(--red);} 
-.bcat{background:rgba(91,141,217,.1);color:var(--blu);} 
-.bsale{background:rgba(217,91,91,.1);color:var(--red);} 
-.bon{background:rgba(90,184,138,.1);color:var(--grn);} 
-.boff{background:rgba(122,122,122,.1);color:var(--m);} 
-.pthmb{width:44px;height:44px;border-radius:7px;object-fit:cover;border:1px solid var(--b);} 
-.tact{display:flex;gap:7px;} 
-.mov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;} 
-.mbox{background:var(--s);border:1px solid var(--b);border-radius:var(--r2);width:100%;max-width:640px;max-height:92vh;overflow-y:auto;display:flex;flex-direction:column;} 
-.mhd{padding:18px 22px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--s);z-index:1;} 
-.mtitle{font-family:var(--fd);font-size:1.25rem;} 
-.mbody{padding:22px;flex:1;} 
-.mft{padding:14px 22px;border-top:1px solid var(--b);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:var(--s);} 
-.iugrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;} 
-.iuslot{aspect-ratio:1;border-radius:8px;border:2px dashed var(--b);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;transition:border-color .2s;background:var(--s2);} 
-.iuslot:hover{border-color:var(--g);} 
-.iuslot img{width:100%;height:100%;object-fit:cover;} 
-.iurm{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);color:#fff;border-radius:50%;width:20px;height:20px;font-size:.65rem;display:flex;align-items:center;justify-content:center;cursor:pointer;} 
-.iuadd{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--m);font-size:.7rem;} 
-.iuadd span{font-size:1.4rem;} 
-.pclist{display:flex;flex-direction:column;gap:10px;} 
-.pci{background:var(--s2);border:1px solid var(--b);border-radius:var(--r);padding:16px;display:flex;align-items:center;justify-content:space-between;gap:14px;} 
-.pcode{font-family:monospace;font-size:1rem;font-weight:700;color:var(--g);} 
-.pinf{font-size:.78rem;color:var(--m);margin-top:3px;} 
-.toast{position:fixed;bottom:22px;right:22px;z-index:999;background:var(--s);border:1px solid var(--g-soft2);border-radius:10px;padding:13px 18px;font-size:.835rem;box-shadow:var(--sh);animation:su .3s ease;display:flex;align-items:center;gap:10px;max-width:340px;} 
-@keyframes su{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}} 
-.footer{background:var(--s);border-top:1px solid var(--b);padding:56px 5% 28px;margin-top:72px;} 
-.ftgrid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:36px;margin-bottom:36px;} 
-@media(max-width:780px){.ftgrid{grid-template-columns:1fr 1fr;}} 
-.ftbrand p{color:var(--m);font-size:.82rem;line-height:1.75;margin-top:11px;} 
-.ftcol h4{font-weight:600;font-size:.82rem;margin-bottom:13px;} 
-.ftlnk{display:block;color:var(--m);font-size:.8rem;margin-bottom:8px;transition:color .2s;cursor:pointer;} 
-.ftlnk:hover{color:var(--g);} 
-.ftbot{border-top:1px solid var(--b);padding-top:22px;display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:var(--m);flex-wrap:wrap;gap:9px;} 
-.fbbtn{display:inline-flex;align-items:center;gap:8px;background:#1877F2;color:#fff;padding:7px 16px;border-radius:50px;font-size:.78rem;font-weight:600;margin-top:14px;transition:opacity .2s;} 
-.fbbtn:hover{opacity:.85;} 
-.backbtn{display:flex;align-items:center;gap:7px;background:none;color:var(--m);font-size:.82rem;padding:0;margin-bottom:22px;transition:color .2s;} 
-.backbtn:hover{color:var(--g);} 
-.discrow{color:var(--grn);} 
-.trubar{background:var(--s);border-top:1px solid var(--b);border-bottom:1px solid var(--b);padding:26px 5%;} 
-.trus{display:flex;justify-content:center;gap:clamp(16px,4vw,72px);flex-wrap:wrap;} 
-.tri{display:flex;align-items:center;gap:8px;color:var(--m);font-size:.82rem;} 
-@media(max-width:600px){.frow{grid-template-columns:1fr;}.dgrid{grid-template-columns:1fr;}.nbtn{display:none;}} 
-
-html[data-theme="atelier"] .nav{background:rgba(246,241,233,.92);border-bottom:1px solid var(--b2);} 
-html[data-theme="atelier"] .nlogo{letter-spacing:.12em;text-transform:uppercase;} 
-html[data-theme="atelier"] .pb{color:var(--t);} 
-html[data-theme="atelier"] .hero{min-height:78vh;text-align:left;align-items:flex-end;background:radial-gradient(ellipse 70% 55% at 18% 30%,var(--g-soft2) 0%,transparent 60%),linear-gradient(135deg,var(--bg) 0%,var(--s2) 100%);} 
-html[data-theme="atelier"] .hero::before{background:linear-gradient(120deg,var(--g-soft) 0%,transparent 60%);} 
-html[data-theme="atelier"] .hero-in{text-align:left;max-width:880px;} 
-html[data-theme="atelier"] .hero h1{font-weight:600;letter-spacing:.01em;} 
-html[data-theme="atelier"] .hacts{justify-content:flex-start;} 
-html[data-theme="atelier"] .pcard{box-shadow:0 18px 45px rgba(34,26,20,.15);} 
-html[data-theme="atelier"] .pbadge{border-radius:999px;} 
-html[data-theme="atelier"] .pimg{border-bottom:1px solid var(--b);} 
-html[data-theme="atelier"] .trubar{background:var(--s2);} 
-html[data-theme="atelier"] .footer{background:var(--s2);margin-top:56px;} 
-
-html[data-theme="night"] .nav{background:rgba(8,12,18,.92);border-bottom:1px solid var(--g-soft2);} 
-html[data-theme="night"] .nlogo{letter-spacing:.06em;text-transform:uppercase;} 
-html[data-theme="night"] .pb{background:linear-gradient(90deg,var(--s2) 0%,var(--s3) 100%);color:var(--t);border-bottom:1px solid var(--g-soft2);} 
-html[data-theme="night"] .hero{min-height:86vh;text-align:left;align-items:center;background:linear-gradient(120deg,#0A0F17 0%,#0F1A28 45%,#0A0F17 100%);} 
-html[data-theme="night"] .hero::before{background:radial-gradient(ellipse 50% 40% at 20% 20%,var(--g-soft2) 0%,transparent 70%);} 
-html[data-theme="night"] .hero-in{text-align:left;max-width:760px;} 
-html[data-theme="night"] .hero h1{text-transform:uppercase;letter-spacing:.02em;} 
-html[data-theme="night"] .hacts{justify-content:flex-start;} 
-html[data-theme="night"] .pgrid{gap:16px;} 
-html[data-theme="night"] .pcard{border-radius:14px;border-color:var(--g-soft2);box-shadow:0 24px 70px rgba(0,0,0,.45);} 
-html[data-theme="night"] .pimg{aspect-ratio:4/5;} 
-html[data-theme="night"] .bg{background:linear-gradient(135deg,var(--g),var(--g2));color:#2B1304;} 
-html[data-theme="night"] .bg:hover{box-shadow:0 12px 30px var(--g-shadow);} 
-html[data-theme="night"] .bgh{border-color:var(--g-soft2);} 
-html[data-theme="night"] .trubar{background:#0C121A;border-top:1px solid var(--g-soft2);border-bottom:1px solid var(--g-soft2);} 
-html[data-theme="night"] .footer{background:#0C121A;} 
-`;
-
-function injectCSS(){const s=document.createElement("style");s.textContent=CSS;document.head.appendChild(s);}
 const fmt=n=>"৳"+Number(n).toLocaleString("en-BD");
 const genId=()=>"MS-"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase();
 const isDhaka=d=>DHAKA_AREAS.includes(d);
@@ -465,6 +149,19 @@ async function apiJSON(path, options = {}) {
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) throw new Error(data?.message || data?.error || `API error (${res.status})`);
+  return data;
+}
+
+async function authJSON(path, options = {}) {
+  const res = await fetch(path, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!res.ok) throw new Error(data?.message || data?.error || `Auth error (${res.status})`);
   return data;
 }
 
@@ -534,6 +231,143 @@ function AdminLogin({onLogin}){
         <div className="fg"><label className="fl">Password</label><input className="fi" type="password" value={p} onChange={e=>setP(e.target.value)} placeholder="••••••••" autoComplete="current-password"/></div>
         <button className="lgbtn" type="submit">Login to Admin Panel</button>
         <div className="lgft">Default: admin / ministain2025</div>
+      </form>
+    </div>
+  );
+}
+
+// Customer Account
+function AccountPage({customer,onAuth,onLogout}){
+  const[mode,setMode]=useState(customer?"profile":"login");
+  const[form,setForm]=useState({firstName:"",lastName:"",phone:"",email:"",password:"",confirm:""});
+  const[err,setErr]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[orders,setOrders]=useState([]);
+  const[ordersLoading,setOrdersLoading]=useState(false);
+  const ch=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
+
+  useEffect(()=>{setMode(customer?"profile":"login");},[customer]);
+  useEffect(()=>{
+    if(!customer) return;
+    setOrdersLoading(true);
+    authJSON("/api/orders/my",{method:"GET"})
+      .then(data=>setOrders(Array.isArray(data?.orders)?data.orders:[]))
+      .catch(()=>setOrders([]))
+      .finally(()=>setOrdersLoading(false));
+  },[customer]);
+
+  const submitLogin=async e=>{
+    e.preventDefault();setErr("");
+    if(!form.email||!form.password){setErr("Email and password required");return;}
+    setLoading(true);
+    try{
+      const data=await authJSON("/api/auth/login",{method:"POST",body:JSON.stringify({email:form.email,password:form.password})});
+      if(data?.user) onAuth(data.user);
+      setMode("profile");
+      setForm(f=>({...f,password:"",confirm:""}));
+    }catch(e){
+      setErr(e?.message||"Login failed");
+    }finally{setLoading(false);}
+  };
+
+  const submitRegister=async e=>{
+    e.preventDefault();setErr("");
+    if(!form.firstName||!form.lastName){setErr("Name required");return;}
+    if(!form.email||!form.password){setErr("Email and password required");return;}
+    if(form.password.length<6){setErr("Password must be at least 6 characters");return;}
+    if(form.password!==form.confirm){setErr("Passwords do not match");return;}
+    setLoading(true);
+    try{
+      const data=await authJSON("/api/auth/register",{method:"POST",body:JSON.stringify({
+        firstName:form.firstName,
+        lastName:form.lastName,
+        phone:form.phone,
+        email:form.email,
+        password:form.password,
+      })});
+      if(data?.user) onAuth(data.user);
+      setMode("profile");
+      setForm(f=>({...f,password:"",confirm:""}));
+    }catch(e){
+      setErr(e?.message||"Registration failed");
+    }finally{setLoading(false);}
+  };
+
+  if(customer&&mode==="profile"){
+    return(
+      <div className="accpage">
+        <div className="acchd">My Account</div>
+        <div className="accsub">Welcome back, {customer.firstName||customer.email}</div>
+        <div className="accgrid">
+          <div className="acccard">
+            <div className="acctitle">Profile</div>
+            <div className="accrow"><span>Name</span><span>{[customer.firstName,customer.lastName].filter(Boolean).join(" ")||"—"}</span></div>
+            <div className="accrow"><span>Email</span><span>{customer.email||"—"}</span></div>
+            <div className="accrow"><span>Phone</span><span>{customer.phone||"—"}</span></div>
+          </div>
+          <div className="acccard">
+            <div className="acctitle">Saved Addresses</div>
+            <div className="accnote">Coming soon</div>
+          </div>
+          <div className="acccard">
+            <div className="acctitle">Order History</div>
+            {ordersLoading
+              ?<div className="accnote">Loading orders...</div>
+              :orders.length===0
+                ?<div className="accnote">No orders yet</div>
+                :<div className="orderlist">
+                  {orders.slice(0,4).map(o=>{
+                    const when=o.createdAt?new Date(o.createdAt):null;
+                    const itemCount=Array.isArray(o.items)?o.items.reduce((s,i)=>s+(i.qty||0),0):0;
+                    const statusKey=String(o.status||"pending").toLowerCase().replace(/[^a-z0-9]+/g,"-");
+                    return(
+                      <div key={o.id} className="orderitem">
+                        <div className="orderrow">
+                          <div className="orderid">{o.orderId||"Order"}</div>
+                          <div className={`orderstatus st-${statusKey}`}>{o.status||"Pending"}</div>
+                        </div>
+                        <div className="orderrow">
+                          <div className="orderdate">{when?when.toLocaleDateString("en-BD"): "—"}</div>
+                          <div className="ordertotal">{fmt(o.total||0)}</div>
+                        </div>
+                        <div className="orderrow">
+                          <div className="orderitems">{itemCount} items</div>
+                          {o.odooOrderId&&<div className="orderodoo">Odoo #{o.odooOrderId}</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>}
+          </div>
+        </div>
+        <button className="bgh bsm" onClick={onLogout}>Sign out</button>
+      </div>
+    );
+  }
+
+  return(
+    <div className="lgpage">
+      <form className="lgcard" onSubmit={mode==="login"?submitLogin:submitRegister}>
+        <div className="lglogo">MiniStain</div>
+        <div className="lgsub">{mode==="login"?"Customer Login":"Create Account"}</div>
+        {err&&<div className="lgerr">{err}</div>}
+        {mode==="register"&&(
+          <div className="frow">
+            <div className="fg"><label className="fl">First Name *</label><input className="fi" value={form.firstName} onChange={ch("firstName")} placeholder="Rahim"/></div>
+            <div className="fg"><label className="fl">Last Name *</label><input className="fi" value={form.lastName} onChange={ch("lastName")} placeholder="Uddin"/></div>
+          </div>
+        )}
+        {mode==="register"&&<div className="fg"><label className="fl">Phone (optional)</label><input className="fi" value={form.phone} onChange={ch("phone")} placeholder="01XXXXXXXXX"/></div>}
+        <div className="fg"><label className="fl">Email *</label><input className="fi" type="email" value={form.email} onChange={ch("email")} placeholder="email@example.com"/></div>
+        <div className="fg"><label className="fl">Password *</label><input className="fi" type="password" value={form.password} onChange={ch("password")} placeholder="••••••••"/></div>
+        {mode==="register"&&<div className="fg"><label className="fl">Confirm Password *</label><input className="fi" type="password" value={form.confirm} onChange={ch("confirm")} placeholder="••••••••"/></div>}
+        <button className="lgbtn" type="submit" disabled={loading}>{loading?"Please wait...":mode==="login"?"Login":"Create Account"}</button>
+        <div className="authswitch">
+          {mode==="login"?"New here? ":"Already have an account? "}
+          <button type="button" onClick={()=>{setErr("");setMode(mode==="login"?"register":"login");}}>
+            {mode==="login"?"Create account":"Login"}
+          </button>
+        </div>
       </form>
     </div>
   );
@@ -665,12 +499,14 @@ function PromoModal({promo,onSave,onClose}){
 }
 
 // Navbar
-function Navbar({page,setPage,cartCount,openCart,isAdmin,logoutAdmin}){
+function Navbar({page,setPage,cartCount,openCart,isAdmin,logoutAdmin,customer,logoutCustomer}){
   return(
     <nav className="nav">
       <div className="nlogo" onClick={()=>setPage("shop")}>MiniStain</div>
       <div className="nright">
         <button className={`nbtn ${page==="shop"?"on":""}`} onClick={()=>setPage("shop")}>Shop</button>
+        <button className={`nbtn ${page==="account"?"on":""}`} onClick={()=>setPage("account")}>{customer?"Account":"Login"}</button>
+        {customer&&<button className="nbtn" onClick={logoutCustomer}>Sign out</button>}
         {isAdmin
           ?<><button className={`nbtn ${page==="admin"?"on":""}`} onClick={()=>setPage("admin")}>Admin</button>
             <button className="nbtn" onClick={logoutAdmin}>Logout</button></>
@@ -689,20 +525,21 @@ function ProdCard({product,onView,onAddToCart}){
   const tag=product.tags?.[0];
   const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
   const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(product.originalPrice||base);
-  const sale=product.salePercent>0;
-  const price=sale?Math.round(orig*(1-product.salePercent/100)):base;
+  const salePercent=Number(product.salePercent||0);
+  const price=salePercent>0?Math.round(orig*(1-salePercent/100)):base;
+  const hasSale=orig>price;
   const img=v?.images?.[0]||FALLBACK_IMG_600;
   return(
     <div className="pcard" onClick={()=>onView(product)}>
       <div className="pimg">
         <img src={img} alt={product.name} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
         {tag&&<span className={`pbadge pb-${tag}`}>{tag}</span>}
-        {sale&&<span className="stag">−{product.salePercent}%</span>}
+        {hasSale&&salePercent>0&&<span className="stag">−{salePercent}%</span>}
       </div>
       <div className="pbody">
         <div className="pcat">{product.category}</div>
         <div className="pname">{product.name}</div>
-        <div className="pprice"><span className="pnow">{fmt(price)}</span><span className="pold">{fmt(orig)}</span></div>
+        <div className="pprice"><span className="pnow">{fmt(price)}</span>{hasSale&&<span className="pold">{fmt(orig)}</span>}</div>
         <div className="pvars">{variants.map((vv,i)=><div key={i} className={`vd ${vi===i?"on":""}`} style={{background:vv.color}} onClick={e=>{e.stopPropagation();setVi(i);}}/>)}</div>
         <div className="qmini" onClick={e=>e.stopPropagation()}>
           <label>Qty:</label>
@@ -768,9 +605,10 @@ function ProdDetail({product,onBack,onAddToCart}){
   const v=variants[activeVi];
   const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
   const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(product.originalPrice||base);
-  const sale=product.salePercent>0;
-  const price=sale?Math.round(orig*(1-product.salePercent/100)):base;
-  const saved=orig-price;
+  const salePercent=Number(product.salePercent||0);
+  const price=salePercent>0?Math.round(orig*(1-salePercent/100)):base;
+  const hasSale=orig>price;
+  const saved=hasSale?orig-price:0;
   const img=v?.images?.[ii]||FALLBACK_IMG_600;
   const thumbs=(v?.images?.length?v.images:[FALLBACK_IMG_600]);
   return(
@@ -786,9 +624,9 @@ function ProdDetail({product,onBack,onAddToCart}){
           <div className="dname">{product.name}</div>
           <div className="dprow">
             <span className="dprice">{fmt(price)}</span>
-            <span className="dpold">{fmt(orig)}</span>
-            {sale&&<span className="dsave">−{product.salePercent}% OFF</span>}
-            {!sale&&saved>0&&<span className="dsave">Save {fmt(saved)}</span>}
+            {hasSale&&<span className="dpold">{fmt(orig)}</span>}
+            {hasSale&&salePercent>0&&<span className="dsave">−{salePercent}% OFF</span>}
+            {hasSale&&salePercent<=0&&saved>0&&<span className="dsave">Save {fmt(saved)}</span>}
           </div>
           <p className="ddesc">{product.description}</p>
           {attributeGroups.length>0?(
@@ -888,15 +726,35 @@ function CartSide({cart,onClose,updateQty,removeItem,onCheckout,coupon,setCoupon
 }
 
 // Checkout
-function Checkout({cart,coupon,onPlace,onBack}){
+function Checkout({cart,coupon,onPlace,onBack,customer}){
   const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
   const disc=coupon?coupon.type==="percent"?Math.round(sub*coupon.value/100):coupon.type==="flat"?coupon.value:0:0;
-  const[form,setForm]=useState({firstName:"",lastName:"",phone:"",email:"",address:"",city:"",district:"",notes:""});
+  const[form,setForm]=useState(()=>({
+    firstName:customer?.firstName||"",
+    lastName:customer?.lastName||"",
+    phone:customer?.phone||"",
+    email:customer?.email||"",
+    address:"",
+    city:"",
+    district:"",
+    notes:"",
+  }));
   const[errors,setErrors]=useState({});
   const[payment,setPayment]=useState({method:"cod",trx:""});
   const ch=k=>e=>setForm(f=>({...f,[k]:e.target.value}));
   const ship=shipFee(form.district,coupon);
   const total=sub-disc+ship;
+
+  useEffect(()=>{
+    if(!customer) return;
+    setForm(f=>({
+      ...f,
+      firstName:f.firstName||customer.firstName||"",
+      lastName:f.lastName||customer.lastName||"",
+      phone:f.phone||customer.phone||"",
+      email:f.email||customer.email||"",
+    }));
+  },[customer]);
 
   const validate=()=>{
     const e={};
@@ -1307,30 +1165,116 @@ function AdminPanel({products,setProducts,orders,setOrders,promos,setPromos,onVi
 
 // Shop
 function Shop({products,promos,onView,onAddToCart,loading}){
-  const[filter,setFilter]=useState("All");const[search,setSearch]=useState("");
+  const[filter,setFilter]=useState("All");
+  const[search,setSearch]=useState("");
+  const[showAll,setShowAll]=useState(false);
   const cats=["All",...Array.from(new Set(products.map(p=>p.category).filter(Boolean))).sort()];
   const active=promos.filter(p=>p.active);
   const list=products.filter(p=>(filter==="All"||p.category===filter)&&(!search||p.name.toLowerCase().includes(search.toLowerCase())));
+  const preview=products.slice(0,8);
+  const pick=(arr,count)=>arr.slice(0,count);
+  const tagMatch=(p,keys)=>(p.tags||[]).some(t=>keys.includes(String(t).toLowerCase()));
+  const featured=products.filter(p=>tagMatch(p,["featured","feature","top","editor","highlight"]));
+  const bestSellers=products.filter(p=>tagMatch(p,["bestseller","best seller","popular","hot"]));
+  const newArrivals=products.filter(p=>tagMatch(p,["new","new arrival","new-arrival"]));
+  const onSale=products.filter(p=>Number(p.salePercent||0)>0);
+  const sections=[
+    {id:"featured",title:"Featured",accent:"Picks",items:pick(featured.length?featured:products,6)},
+    {id:"bestsellers",title:"Best",accent:"Sellers",items:pick(bestSellers.length?bestSellers:products,6)},
+    {id:"new",title:"New",accent:"Arrivals",items:pick(newArrivals.length?newArrivals:products,6)},
+    {id:"sale",title:"On",accent:"Sale",items:pick(onSale,6)},
+  ].filter(s=>s.items.length>0);
+  const promoValue=p=>p.type==="percent"?`${p.value}% OFF`:p.type==="flat"?`${fmt(p.value)} OFF`:"Free Shipping";
+  const promoMin=p=>p.minOrder?`Min order ${fmt(p.minOrder)}`:"No minimum";
+  const scrollTo=id=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth"});};
+  const showAllNow=()=>{setShowAll(true);setTimeout(()=>scrollTo("shopall"),0);};
+  const goCategory=c=>{setFilter(c);setSearch("");setShowAll(true);setTimeout(()=>scrollTo("shopall"),0);};
+
   return(
     <>
-      {active.length>0&&<div className="pb">🏷️ {active.map(p=>p.label).join("  ·  ")}  — Use codes at checkout!</div>}
+      {active.length>0&&<div className="pb">🏷️ {active.map(p=>`${p.code} ${promoValue(p)}`).join("  ·  ")}  — Use codes at checkout!</div>}
       <div className="hero">
         <div className="hero-in">
           <div className="hpill">✦ Premium Stainless Steel Jewelry</div>
           <h1>Wear <em>Luxury</em><br/>Every Day</h1>
           <p>Handcrafted 316L stainless steel jewelry — hypoallergenic, waterproof, and built to last a lifetime.</p>
           <div className="hacts">
-            <button className="bg" onClick={()=>document.getElementById("prods")?.scrollIntoView({behavior:"smooth"})}>Shop Now</button>
+            <button className="bg" onClick={()=>{const el=document.getElementById("collections")||document.getElementById("shopall");if(el)el.scrollIntoView({behavior:"smooth"});}}>Shop Now</button>
             <a className="bgh" href="https://www.facebook.com/profile.php?id=61586131658591" target="_blank" rel="noreferrer">📘 MiniStain Facebook</a>
           </div>
         </div>
       </div>
-      <div className="sec" id="prods">
-        <div className="sch">
-          <h2 className="stitle">Our <em>Collection</em></h2>
-          <div className="sw"><span className="sico">🔍</span><input placeholder="Search jewelry..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+
+      {active.length>0&&(
+        <div className="sec" id="promos">
+          <div className="sch">
+            <h2 className="stitle">Active <em>Promotions</em></h2>
+            <button className="bgh bsm" onClick={showAllNow}>Shop All</button>
+          </div>
+          <div className="promogrid">
+            {active.map(p=>(
+              <div key={p.code} className="promocard">
+                <div className="promocode">{p.code}</div>
+                <div className="promoval">{promoValue(p)}</div>
+                <div className="promolabel">{p.label||"Promotion"}</div>
+                <div className="promomin">{promoMin(p)}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="ftabs">{cats.map(c=><button key={c} className={`ftab ${filter===c?"on":""}`} onClick={()=>setFilter(c)}>{c}</button>)}</div>
+      )}
+
+      {sections.map((s,idx)=>(
+        <div key={s.id} className="sec" id={idx===0?"collections":undefined}>
+          <div className="sch">
+            <h2 className="stitle">{s.title} <em>{s.accent}</em></h2>
+            <button className="bgh bsm" onClick={showAllNow}>Shop All</button>
+          </div>
+          {loading&&products.length===0?(
+            <div className="pgrid">
+              {Array.from({length:6}).map((_,i)=>(
+                <div key={i} className="skcard">
+                  <div className="skimg skpulse"/>
+                  <div className="skbody">
+                    <div className="skline sm skpulse"/>
+                    <div className="skline lg skpulse"/>
+                    <div className="skline md skpulse"/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ):(
+            <div className="pgrid">{s.items.map(p=><ProdCard key={`${s.id}-${p.id}`} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
+          )}
+        </div>
+      ))}
+
+      {cats.length>1&&(
+        <div className="sec">
+          <div className="sch">
+            <h2 className="stitle">Shop by <em>Category</em></h2>
+            <button className="bgh bsm" onClick={showAllNow}>Browse All</button>
+          </div>
+          <div className="catgrid">
+            {cats.filter(c=>c!=="All").slice(0,10).map(c=>(
+              <button key={c} type="button" className="catcard" onClick={()=>goCategory(c)}>
+                <div className="catname">{c}</div>
+                <div className="catcount">{products.filter(p=>p.category===c).length} items</div>
+                <div className="catcta">Shop →</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="sec" id="shopall">
+        <div className="sch">
+          <h2 className="stitle">Shop <em>All</em></h2>
+          {showAll
+            ?<div className="sw"><span className="sico">🔍</span><input placeholder="Search jewelry..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+            :<button className="bg bsm" onClick={showAllNow}>View All Products</button>}
+        </div>
+        {showAll&&<div className="ftabs">{cats.map(c=><button key={c} className={`ftab ${filter===c?"on":""}`} onClick={()=>setFilter(c)}>{c}</button>)}</div>}
         {loading&&products.length===0?(
           <div className="pgrid">
             {Array.from({length:8}).map((_,i)=>(
@@ -1344,12 +1288,20 @@ function Shop({products,promos,onView,onAddToCart,loading}){
               </div>
             ))}
           </div>
-        ):list.length===0?(
+        ):showAll?(
+          list.length===0
+            ?<div style={{textAlign:"center",padding:"60px 0",color:"var(--m)"}}>No products found</div>
+            :<div className="pgrid">{list.map(p=><ProdCard key={p.id} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
+        ):preview.length===0?(
           <div style={{textAlign:"center",padding:"60px 0",color:"var(--m)"}}>No products found</div>
         ):(
-          <div className="pgrid">{list.map(p=><ProdCard key={p.id} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
+          <>
+            <div className="pgrid">{preview.map(p=><ProdCard key={p.id} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
+            <div className="secta"><button className="bg" onClick={showAllNow}>View All Products</button></div>
+          </>
         )}
       </div>
+
       <div className="trubar"><div className="trus">{[["💧","Waterproof"],["🛡️","316L Steel"],["🚚","Dhaka ৳80 · Others ৳120"],["💵","Cash on Delivery"],["↩️","Easy Returns"]].map(([ic,lb])=><div key={lb} className="tri"><span style={{fontSize:"1.1rem"}}>{ic}</span>{lb}</div>)}</div></div>
       <footer className="footer">
         <div className="ftgrid">
@@ -1374,12 +1326,12 @@ function Shop({products,promos,onView,onAddToCart,loading}){
 
 // App
 export default function App(){
-  useEffect(()=>{injectCSS();},[]);
   const[products,setProducts]=useState(INIT_PRODUCTS);
   const[productsLoading,setProductsLoading]=useState(true);
   const[orders,setOrders]=useState([]);
   const[cart,setCart]=useLS("ms_cart",[]);
   const[promos,setPromos]=useState(INITIAL_PROMOS);
+  const[customer,setCustomer]=useState(null);
   const[theme,setTheme]=useLS("ms_theme",THEMES[0].id);
   useEffect(()=>{
     (async()=>{
@@ -1396,7 +1348,15 @@ export default function App(){
       }catch(e){}
     })();
   },[setProducts,setPromos]);
-  useEffect(()=>{applyThemeVars(theme);},[theme]);
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const data=await authJSON("/api/auth/me",{method:"GET"});
+        if(data?.user) setCustomer(data.user);
+      }catch(e){}
+    })();
+  },[]);
+  useLayoutEffect(()=>{applyThemeVars(theme);},[theme]);
   useEffect(()=>{
     (async()=>{
       try{
@@ -1433,6 +1393,10 @@ export default function App(){
   const[themeSaving,setThemeSaving]=useState(false);
   const[themeStatus,setThemeStatus]=useState("");
   const showToast=(msg,icon="✦")=>setToast({msg,icon});
+  const handleAuth=user=>{
+    setCustomer(user||null);
+    if(user) showToast("Logged in","👤");
+  };
   const updateTheme=(id)=>{
     const t=THEMES.find(x=>x.id===id)||THEMES[0];
     setTheme(t.id);
@@ -1458,8 +1422,8 @@ export default function App(){
     const v=product.variants[vi];
     const base=typeof v?.price==="number"&&v.price>0?v.price:product.price;
     const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(product.originalPrice||base);
-    const sale=product.salePercent>0;
-    const price=sale?Math.round(orig*(1-product.salePercent/100)):base;
+    const salePercent=Number(product.salePercent||0);
+    const price=salePercent>0?Math.round(orig*(1-salePercent/100)):base;
     const cartId=`${product.id}-${vi}-${size}`;
     const img=v?.images?.[0]||"";
     const odooProductId=v?.odooProductId||product.odooProductId||product.id;
@@ -1490,14 +1454,21 @@ export default function App(){
   };
   const setPage2=p=>{if(p==="admin"&&!adminAuth){setPage("adminlogin");return;}setPage(p);setViewProd(null);updateProductInUrl(null,{replace:true});};
   const logout=()=>{setAdminAuth(false);setPage("shop");};
+  const logoutCustomer=async()=>{
+    try{await authJSON("/api/auth/logout",{method:"POST"});}catch(e){}
+    setCustomer(null);
+    showToast("Logged out","👤");
+    if(page==="account") setPage("shop");
+  };
 
-  if(page==="adminlogin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={false} logoutAdmin={logout}/><AdminLogin onLogin={()=>{setAdminAuth(true);setPage("admin");}}/></>);
-  if(page==="success"&&sucOrder)return(<><Navbar page="shop" setPage={setPage2} cartCount={0} openCart={()=>{}} isAdmin={adminAuth} logoutAdmin={logout}/><OrderSuc order={sucOrder} onContinue={()=>{setPage("shop");setSucOrder(null);}}/></>);
-  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos} onViewProduct={(p)=>openProduct(p)} theme={theme} onThemeChange={updateTheme} themeSaving={themeSaving} themeStatus={themeStatus}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
-  if(checkout)return(<><Navbar page="shop" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/><Checkout cart={cart} coupon={coupon} onPlace={placeOrder} onBack={()=>{setCheckout(false);setCartOpen(true);}}/></>);
+  if(page==="adminlogin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={false} logoutAdmin={logout} customer={customer} logoutCustomer={logoutCustomer}/><AdminLogin onLogin={()=>{setAdminAuth(true);setPage("admin");}}/></>);
+  if(page==="success"&&sucOrder)return(<><Navbar page="shop" setPage={setPage2} cartCount={0} openCart={()=>{}} isAdmin={adminAuth} logoutAdmin={logout} customer={customer} logoutCustomer={logoutCustomer}/><OrderSuc order={sucOrder} onContinue={()=>{setPage("shop");setSucOrder(null);}}/></>);
+  if(page==="account")return(<><Navbar page="account" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout} customer={customer} logoutCustomer={logoutCustomer}/><AccountPage customer={customer} onAuth={handleAuth} onLogout={logoutCustomer}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
+  if(page==="admin")return(<><Navbar page="admin" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout} customer={customer} logoutCustomer={logoutCustomer}/><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} promos={promos} setPromos={setPromos} onViewProduct={(p)=>openProduct(p)} theme={theme} onThemeChange={updateTheme} themeSaving={themeSaving} themeStatus={themeStatus}/>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</>);
+  if(checkout)return(<><Navbar page="shop" setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout} customer={customer} logoutCustomer={logoutCustomer}/><Checkout cart={cart} coupon={coupon} onPlace={placeOrder} onBack={()=>{setCheckout(false);setCartOpen(true);}} customer={customer}/></>);
   return(
     <>
-      <Navbar page={page} setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout}/>
+      <Navbar page={page} setPage={setPage2} cartCount={cartCount} openCart={()=>setCartOpen(true)} isAdmin={adminAuth} logoutAdmin={logout} customer={customer} logoutCustomer={logoutCustomer}/>
       {viewProd?<ProdDetail product={viewProd} onBack={()=>closeProduct()} onAddToCart={addToCart}/>:<Shop products={products} promos={promos} onView={openProduct} onAddToCart={addToCart} loading={productsLoading}/>}
       {cartOpen&&<CartSide cart={cart} onClose={()=>setCartOpen(false)} updateQty={updateQty} removeItem={removeItem} onCheckout={()=>{setCartOpen(false);setCheckout(true);}} coupon={coupon} setCoupon={setCoupon} promos={promos}/>}
       {toast&&<Toast {...toast} onClose={()=>setToast(null)}/>

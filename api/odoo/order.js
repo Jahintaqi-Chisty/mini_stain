@@ -1,3 +1,6 @@
+import { getDb } from "../_db.js";
+import { getAuthToken, verifyToken } from "../auth/_utils.js";
+
 const REQUIRED_ENV = ["ODOO_BASE_URL", "ODOO_DB", "ODOO_USER", "ODOO_API_KEY"];
 
 async function readJson(req) {
@@ -251,6 +254,32 @@ export default async function handler(req, res) {
       "create",
       [orderVals]
     );
+
+    // Best-effort: store customer order history in MongoDB if authenticated.
+    try {
+      const token = getAuthToken(req);
+      if (token) {
+        const payload = verifyToken(token);
+        if (payload?.id) {
+          const dbConn = await getDb();
+          const orders = dbConn.collection("orders");
+          await orders.insertOne({
+            userId: String(payload.id),
+            orderId: order.orderId || null,
+            odooOrderId: saleOrderId,
+            status: order.status || "Pending",
+            coupon: order.coupon || null,
+            discount: Number(order.discount || 0),
+            shipping: Number(order.shipping || 0),
+            total: Number(order.total || 0),
+            payment: order.payment || null,
+            address: order.address || null,
+            items: Array.isArray(order.items) ? order.items : [],
+            createdAt: new Date(),
+          });
+        }
+      }
+    } catch {}
 
     res.status(200).json({ ok: true, odooOrderId: saleOrderId });
   } catch (err) {
