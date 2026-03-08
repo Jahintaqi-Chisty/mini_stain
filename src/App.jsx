@@ -1209,24 +1209,74 @@ function HomePage({products,promos,onView,onAddToCart,loading,onShopAll,onCatego
   const newItems=(newRaw.length?newRaw:[]).slice(0,6);
   const promoValue=p=>p.type==="percent"?`${p.value}% OFF`:p.type==="flat"?`${fmt(p.value)} OFF`:"Free Shipping";
   const promoMin=p=>p.minOrder?`Min order ${fmt(p.minOrder)}`:"No minimum";
+  const getImg=p=>p?.variants?.[0]?.images?.[0]||FALLBACK_IMG_600;
+  const getDiscountPct=p=>{
+    const v=p?.variants?.[0];
+    const base=typeof v?.price==="number"&&v.price>0?v.price:p.price;
+    const orig=typeof v?.originalPrice==="number"&&v.originalPrice>0?v.originalPrice:(p.originalPrice||base);
+    if(orig>base) return Math.round(((orig-base)/orig)*100);
+    const sp=Number(p.salePercent||0);
+    return sp>0?sp:0;
+  };
+  const heroProduct=products[0]||null;
+  const heroThumbs=products.slice(1,4);
+  const dealProduct=products.reduce((best,p)=>{
+    const pct=getDiscountPct(p);
+    if(pct<=0) return best;
+    if(!best) return p;
+    return pct>getDiscountPct(best)?p:best;
+  },null);
 
   return(
     <>
       {active.length>0&&<div className="pb">🏷️ {active.map(p=>`${p.code} ${promoValue(p)}`).join("  ·  ")}  — Use codes at checkout!</div>}
-      <div className="hero">
+      <section className="hero">
         <div className="hero-in">
-          <div className="hpill">✦ Premium Stainless Steel Jewelry</div>
-          <h1>Wear <em>Luxury</em><br/>Every Day</h1>
-          <p>Handcrafted 316L stainless steel jewelry — hypoallergenic, waterproof, and built to last a lifetime.</p>
-          <div className="hacts">
-            <button className="bg" onClick={onShopAll}>Shop All</button>
-            <a className="bgh" href="https://www.facebook.com/profile.php?id=61586131658591" target="_blank" rel="noreferrer">📘 MiniStain Facebook</a>
+          <div className="hero-grid">
+            <div className="hero-left">
+              <div className="hpill">✦ Premium Stainless Steel Jewelry</div>
+              <h1>Wear <em>Luxury</em><br/>Every Day</h1>
+              <p>Minimal, bold, and waterproof. Designed for daily wear with lasting shine.</p>
+              <div className="hacts">
+                <button className="bg" onClick={onShopAll}>Shop All</button>
+                <button className="bgh" onClick={()=>onCategory(cats[0]||"All")}>Shop {cats[0]||"Collection"}</button>
+              </div>
+              <div className="hero-stats">
+                {[
+                  ["316L Steel","Surgical grade"],
+                  ["Waterproof","Daily wear safe"],
+                  ["Cash on Delivery","Nationwide"],
+                ].map(([k,v])=>(
+                  <div key={k} className="stat">
+                    <div className="statv">{k}</div>
+                    <div className="statl">{v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="hero-right">
+              <div className="hero-card">
+                <img className="hero-main" src={getImg(heroProduct)} alt={heroProduct?.name||"MiniStain"} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
+                {heroProduct&&<div className="hero-tag">{heroProduct.category||"Featured"}</div>}
+              </div>
+              <div className="hero-stack">
+                {heroThumbs.map(p=>(
+                  <button key={p.id} className="hero-thumb" onClick={()=>onView(p)}>
+                    <img src={getImg(p)} alt={p.name} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
+                    <div>
+                      <div className="htitle">{p.name}</div>
+                      <div className="hprice">{fmt(p.price||0)}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {active.length>0&&(
-        <div className="sec">
+        <section className="sec">
           <div className="sch">
             <h2 className="stitle">Active <em>Promotions</em></h2>
             <button className="bgh bsm" onClick={onShopAll}>Shop All</button>
@@ -1241,10 +1291,28 @@ function HomePage({products,promos,onView,onAddToCart,loading,onShopAll,onCatego
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      <div className="sec">
+      {cats.length>0&&(
+        <section className="sec">
+          <div className="sch">
+            <h2 className="stitle">Shop by <em>Category</em></h2>
+            <button className="bgh bsm" onClick={onShopAll}>Browse All</button>
+          </div>
+          <div className="catgrid">
+            {cats.slice(0,10).map(c=>(
+              <button key={c} type="button" className="catcard" onClick={()=>onCategory(c)}>
+                <div className="catname">{c}</div>
+                <div className="catcount">{products.filter(p=>p.category===c).length} items</div>
+                <div className="catcta">Shop →</div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="sec">
         <div className="sch">
           <h2 className="stitle">Featured <em>Collection</em></h2>
           <button className="bgh bsm" onClick={onShopAll}>Shop All</button>
@@ -1267,35 +1335,59 @@ function HomePage({products,promos,onView,onAddToCart,loading,onShopAll,onCatego
         ):(
           <div className="pgrid">{featured.map(p=><ProdCard key={`feat-${p.id}`} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
         )}
-      </div>
+      </section>
+
+      {dealProduct&&(
+        <section className="sec">
+          <div className="dealcard">
+            <img className="dealimg" src={getImg(dealProduct)} alt={dealProduct.name} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
+            <div className="dealinfo">
+              <div className="dealpill">Deal of the Week</div>
+              <div className="dealtitle">{dealProduct.name}</div>
+              <div className="dealsub">{dealProduct.category||"Limited drop"}</div>
+              <div className="dealprice">
+                <span className="dealnow">{fmt(dealProduct.variants?.[0]?.price||dealProduct.price||0)}</span>
+                <span className="dealold">{fmt(dealProduct.variants?.[0]?.originalPrice||dealProduct.originalPrice||dealProduct.price||0)}</span>
+                <span className="dealsave">Save {getDiscountPct(dealProduct)}%</span>
+              </div>
+              <div className="dealacts">
+                <button className="bg" onClick={()=>onView(dealProduct)}>View Deal</button>
+                <button className="bgh" onClick={onShopAll}>Shop All</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {newItems.length>0&&(
-        <div className="sec">
+        <section className="sec">
           <div className="sch">
             <h2 className="stitle">New <em>Arrivals</em></h2>
             <button className="bgh bsm" onClick={onShopAll}>Shop All</button>
           </div>
           <div className="pgrid">{newItems.map(p=><ProdCard key={`new-${p.id}`} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
-        </div>
+        </section>
       )}
 
-      {cats.length>0&&(
-        <div className="sec">
-          <div className="sch">
-            <h2 className="stitle">Shop by <em>Category</em></h2>
-            <button className="bgh bsm" onClick={onShopAll}>Browse All</button>
-          </div>
-          <div className="catgrid">
-            {cats.slice(0,10).map(c=>(
-              <button key={c} type="button" className="catcard" onClick={()=>onCategory(c)}>
-                <div className="catname">{c}</div>
-                <div className="catcount">{products.filter(p=>p.category===c).length} items</div>
-                <div className="catcta">Shop →</div>
-              </button>
-            ))}
-          </div>
+      <section className="sec">
+        <div className="sch">
+          <h2 className="stitle">Why <em>MiniStain</em></h2>
         </div>
-      )}
+        <div className="featuregrid">
+          {[
+            ["✨","Tarnish Resistant","Built for daily wear without fading."],
+            ["🛡️","Hypoallergenic","Safe for sensitive skin."],
+            ["💧","Waterproof","Shower, swim, repeat."],
+            ["🚚","Fast Delivery","Dhaka & nationwide shipping."],
+          ].map(([ic,t,tx])=>(
+            <div key={t} className="featurecard">
+              <div className="fic">{ic}</div>
+              <div className="ftitle">{t}</div>
+              <div className="fdesc">{tx}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <TrustBar/>
       <SiteFooter/>
