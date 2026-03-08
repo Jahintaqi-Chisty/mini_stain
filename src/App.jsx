@@ -1218,59 +1218,72 @@ function HomePage({products,promos,onView,onAddToCart,loading,onShopAll,onCatego
     const sp=Number(p.salePercent||0);
     return sp>0?sp:0;
   };
-  const heroProduct=products[0]||null;
-  const heroThumbs=products.slice(1,4);
+  const slideItems=(products.length?products:[]).slice(0,5);
+  const slides=slideItems.length
+    ? slideItems.map(p=>({
+        id:p.id,
+        image:getImg(p),
+        title:p.name,
+        subtitle:p.category||"MiniStain",
+        action:()=>onView(p),
+      }))
+    :[{id:"fallback",image:FALLBACK_IMG_600,title:"Premium Stainless Steel",subtitle:"Daily wear jewelry",action:onShopAll}];
+  const[slide,setSlide]=useState(0);
+  useEffect(()=>{
+    if(slides.length<2) return;
+    const t=setInterval(()=>setSlide(s=>(s+1)%slides.length),5000);
+    return()=>clearInterval(t);
+  },[slides.length]);
   const dealProduct=products.reduce((best,p)=>{
     const pct=getDiscountPct(p);
     if(pct<=0) return best;
     if(!best) return p;
     return pct>getDiscountPct(best)?p:best;
   },null);
+  const trendCats=cats.slice(0,6);
+  const[trend,setTrend]=useState(trendCats[0]||"All");
+  const trendList=products
+    .filter(p=>trend==="All"||p.category===trend)
+    .slice(0,8);
+  const banners=products.slice(0,4);
+  const offerItems=products.filter(p=>getDiscountPct(p)>0).slice(0,6);
 
   return(
     <>
       {active.length>0&&<div className="pb">🏷️ {active.map(p=>`${p.code} ${promoValue(p)}`).join("  ·  ")}  — Use codes at checkout!</div>}
       <section className="hero">
+        <div className="hero-slider">
+          {slides.map((s,i)=>(
+            <div key={s.id} className={`hero-slide ${i===slide?"on":""}`}>
+              <img src={s.image} alt={s.title} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
+            </div>
+          ))}
+          <div className="hero-fade"/>
+          <div className="hero-dots">
+            {slides.map((_,i)=>(
+              <button key={i} className={i===slide?"on":""} onClick={()=>setSlide(i)} aria-label={`Slide ${i+1}`}/>
+            ))}
+          </div>
+        </div>
         <div className="hero-in">
-          <div className="hero-grid">
-            <div className="hero-left">
-              <div className="hpill">✦ Premium Stainless Steel Jewelry</div>
-              <h1>Wear <em>Luxury</em><br/>Every Day</h1>
-              <p>Minimal, bold, and waterproof. Designed for daily wear with lasting shine.</p>
-              <div className="hacts">
-                <button className="bg" onClick={onShopAll}>Shop All</button>
-                <button className="bgh" onClick={()=>onCategory(cats[0]||"All")}>Shop {cats[0]||"Collection"}</button>
+          <div className="hpill">✦ Premium Stainless Steel Jewelry</div>
+          <h1>Wear <em>Luxury</em><br/>Every Day</h1>
+          <p>Minimal, bold, and waterproof. Designed for daily wear with lasting shine.</p>
+          <div className="hacts">
+            <button className="bg" onClick={onShopAll}>Shop All</button>
+            <button className="bgh" onClick={()=>onCategory(cats[0]||"All")}>Shop {cats[0]||"Collection"}</button>
+          </div>
+          <div className="hero-stats">
+            {[
+              ["316L Steel","Surgical grade"],
+              ["Waterproof","Daily wear safe"],
+              ["Cash on Delivery","Nationwide"],
+            ].map(([k,v])=>(
+              <div key={k} className="stat">
+                <div className="statv">{k}</div>
+                <div className="statl">{v}</div>
               </div>
-              <div className="hero-stats">
-                {[
-                  ["316L Steel","Surgical grade"],
-                  ["Waterproof","Daily wear safe"],
-                  ["Cash on Delivery","Nationwide"],
-                ].map(([k,v])=>(
-                  <div key={k} className="stat">
-                    <div className="statv">{k}</div>
-                    <div className="statl">{v}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="hero-right">
-              <div className="hero-card">
-                <img className="hero-main" src={getImg(heroProduct)} alt={heroProduct?.name||"MiniStain"} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
-                {heroProduct&&<div className="hero-tag">{heroProduct.category||"Featured"}</div>}
-              </div>
-              <div className="hero-stack">
-                {heroThumbs.map(p=>(
-                  <button key={p.id} className="hero-thumb" onClick={()=>onView(p)}>
-                    <img src={getImg(p)} alt={p.name} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
-                    <div>
-                      <div className="htitle">{p.name}</div>
-                      <div className="hprice">{fmt(p.price||0)}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -1302,10 +1315,43 @@ function HomePage({products,promos,onView,onAddToCart,loading,onShopAll,onCatego
           </div>
           <div className="catgrid">
             {cats.slice(0,10).map(c=>(
-              <button key={c} type="button" className="catcard" onClick={()=>onCategory(c)}>
+              <button key={c} type="button" className="catcard" style={{backgroundImage:`linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.55)),url(${getImg(products.find(p=>p.category===c))})`}} onClick={()=>onCategory(c)}>
                 <div className="catname">{c}</div>
                 <div className="catcount">{products.filter(p=>p.category===c).length} items</div>
                 <div className="catcta">Shop →</div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {trendCats.length>0&&(
+        <section className="sec">
+          <div className="sch">
+            <h2 className="stitle">Trending <em>Now</em></h2>
+            <button className="bgh bsm" onClick={()=>onCategory(trend)}>See More</button>
+          </div>
+          <div className="trendtabs">
+            {trendCats.map(c=>(
+              <button key={c} className={`trendtab ${trend===c?"on":""}`} onClick={()=>setTrend(c)}>{c}</button>
+            ))}
+          </div>
+          {trendList.length===0
+            ?<div style={{textAlign:"center",padding:"40px 0",color:"var(--m)"}}>No products found</div>
+            :<div className="pgrid">{trendList.map(p=><ProdCard key={`trend-${p.id}`} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>}
+        </section>
+      )}
+
+      {banners.length>0&&(
+        <section className="sec">
+          <div className="bannergrid">
+            {banners.map(p=>(
+              <button key={`ban-${p.id}`} className="banner" onClick={()=>onView(p)}>
+                <img src={getImg(p)} alt={p.name} loading="lazy" onError={e=>{e.currentTarget.src=FALLBACK_IMG_600;}}/>
+                <div className="btxt">
+                  <div className="btitle">{p.name}</div>
+                  <div className="bcta">Shop now →</div>
+                </div>
               </button>
             ))}
           </div>
@@ -1366,6 +1412,16 @@ function HomePage({products,promos,onView,onAddToCart,loading,onShopAll,onCatego
             <button className="bgh bsm" onClick={onShopAll}>Shop All</button>
           </div>
           <div className="pgrid">{newItems.map(p=><ProdCard key={`new-${p.id}`} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
+        </section>
+      )}
+
+      {offerItems.length>0&&(
+        <section className="sec">
+          <div className="sch">
+            <h2 className="stitle">Unlimited <em>Offer</em></h2>
+            <button className="bgh bsm" onClick={onShopAll}>Shop All</button>
+          </div>
+          <div className="pgrid">{offerItems.map(p=><ProdCard key={`offer-${p.id}`} product={p} onView={onView} onAddToCart={onAddToCart}/>)}</div>
         </section>
       )}
 
